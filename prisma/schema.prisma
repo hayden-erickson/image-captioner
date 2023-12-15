@@ -1,0 +1,31 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = "mysql://root:CQaak3hZSiPgHmn6@127.0.0.1:3306/image_captioner_test?connection_limit=5&socket_timeout=3"
+}
+
+model Session {
+  id          String    @id
+  shop        String
+  state       String
+  isOnline    Boolean   @default(false)
+  scope       String?
+  expires     DateTime?
+  accessToken String
+  userId      BigInt?
+}
+
+model ShopVisionatiTokens {
+  shop_id             String    @id
+  visionati_api_token String
+}
+
+model ShopAutoImageDescriptions {
+  shop_id String    @id
+}
