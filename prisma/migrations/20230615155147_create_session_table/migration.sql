@@ -1,11 +1,12 @@
 -- CreateTable
-CREATE TABLE "Session" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "shop" TEXT NOT NULL,
-    "state" TEXT NOT NULL,
-    "isOnline" BOOLEAN NOT NULL DEFAULT false,
-    "scope" TEXT,
-    "expires" DATETIME,
-    "accessToken" TEXT NOT NULL,
-    "userId" BIGINT
+CREATE TABLE Session (
+    id varchar(255) not null,
+    shop text not null,
+    state text not null,
+    isOnline boolean not null default false,
+    scope text,
+    expires datetime,
+    accessToken text not null,
+    userId bigint,
+    PRIMARY KEY (id)
 );

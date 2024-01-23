@@ -2,6 +2,7 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
+// exported action functions under app/routes/* handler non-GET requests
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { topic, shop, session } = await authenticate.webhook(
     request
@@ -25,6 +26,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     case "CUSTOMERS_REDACT":
     case "SHOP_REDACT":
     case "PRODUCTS_UPDATE":
+      // TODO if we update a product after a product update webhook will it
+      // re-trigger a product update webhook and infinite loop?
       console.log(request)
       break
     default:

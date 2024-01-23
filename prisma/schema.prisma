@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:CQaak3hZSiPgHmn6@127.0.0.1:3306/image_captioner_test?connection_limit=5&socket_timeout=3"
+  url      = env("GCP_MYSQL_URL")
 }
 
 model Session {
@@ -21,9 +21,9 @@ model Session {
   userId      BigInt?
 }
 
-model ShopVisionatiTokens {
+model ShopVisionatiApiKeys {
   shop_id             String    @id
-  visionati_api_token String
+  visionati_api_key   String
 }
 
 model ShopAutoImageDescriptions {
