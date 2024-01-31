@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import {AdminContext} from "@shopify/shopify-app-remix/server";
 import db from "../db.server";
 import {
   useFetcher,
 } from '@remix-run/react'
 
 import {
+  FormLayout,
+  TextField,
   Button,
+  Checkbox,
 } from "@shopify/polaris";
 
 import { authenticate } from "../shopify.server";
@@ -56,30 +58,56 @@ export const action = async ({
 export default function VisionatiApiToken() {
   const fetcher = useFetcher<typeof loader>();
   const [visionati_api_key, setVisionatiApiKey] = useState("")
-  const [loaded, setLoaded] = useState(false)
+  const [fetcherAlreadyLoaded, setFetcherAlreadyLoaded] = useState(false)
   const isLoading = fetcher.state !== "idle"
-  const saveApiToken = () => {
-    fetcher.submit({visionati_api_key},{method:"POST", action:"/app/settings/visionati_api_token"});
+
+  const saveApiToken = async () => {
+    await fetcher.submit({visionati_api_key},{method:"POST", action:"/settings/visionati_api_token"});
     shopify.toast.show("API Token Saved");
   }
 
-  // If there actually is no API key, this loops forever.
   useEffect(() => {
-    if ( fetcher.state === "idle" && !fetcher.data  && !loaded ) {
-      fetcher.load("/app/settings/visionati_api_token")
-      setLoaded(true)
+    if ( isLoading ) {
+      return
     }
-  }, [fetcher, loaded]);
+
+    if ( fetcher.data ) {
+      return
+    }
+
+    if ( fetcherAlreadyLoaded ) {
+      return
+    }
+
+    const loadData = async () => {
+      await fetcher.load("/settings/visionati_api_token")
+      // If there is no visionati api key we set loaded to true so that this
+      // effect doesn't loop forever.
+      setFetcherAlreadyLoaded(true)
+    }
+
+    loadData()
+  }, [fetcher, isLoading, fetcherAlreadyLoaded]);
 
   if(visionati_api_key === "" && fetcher?.data?.visionati_api_key) {
     setVisionatiApiKey(fetcher?.data?.visionati_api_key)
   }
 
-
   return (
-    <div>
-      <input disabled={isLoading} name="visionati_api_key" type="text" onChange={e => setVisionatiApiKey(e.target.value)} value={visionati_api_key}/>
-      <Button loading={isLoading} onClick={saveApiToken} >Save API Token</Button>
-    </div>
+    <FormLayout>
+      <TextField label="Visionati API Key"
+        disabled={isLoading}
+        value={visionati_api_key}
+        onChange={k => setVisionatiApiKey(k)}
+        autoComplete="off" />
+
+
+      <Button variant="primary"
+        loading={isLoading}
+        onClick={saveApiToken} >
+        Save
+      </Button>
+
+    </FormLayout>
   )
 }

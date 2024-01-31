@@ -1,9 +1,13 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-name = "image-captioner"
 client_id = "a556031e8a54b39c2ccb91895fd1045b"
-application_url = "https://constant-awareness-consoles-pty.trycloudflare.com"
+name = "image-captioner"
+application_url = "https://chick-watched-november-stories.trycloudflare.com"
 embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "image-captioner-testing.myshopify.com"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -11,17 +15,13 @@ scopes = "read_products, write_products, read_product_listings"
 
 [auth]
 redirect_urls = [
-  "https://constant-awareness-consoles-pty.trycloudflare.com/auth/callback",
-  "https://constant-awareness-consoles-pty.trycloudflare.com/auth/shopify/callback",
-  "https://constant-awareness-consoles-pty.trycloudflare.com/api/auth/callback"
+  "https://chick-watched-november-stories.trycloudflare.com/auth/callback",
+  "https://chick-watched-november-stories.trycloudflare.com/auth/shopify/callback",
+  "https://chick-watched-november-stories.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
-api_version = "2023-10"
+api_version = "2024-01"
 
 [pos]
 embedded = false
-
-[build]
-automatically_update_urls_on_dev = true
-dev_store_url = "image-captioner-testing.myshopify.com"
