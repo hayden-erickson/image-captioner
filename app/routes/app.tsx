@@ -23,7 +23,10 @@ export default function App() {
         <Link to="/app" rel="home">
           Home
         </Link>
+        {/* Add links to different sub pages here*/}
       </ui-nav-menu>
+
+      {/* The Outlet will render any child routes of /app/* */}
       <Outlet />
     </AppProvider>
   );

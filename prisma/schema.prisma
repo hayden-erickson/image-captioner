@@ -26,6 +26,30 @@ model ShopVisionatiApiKeys {
   visionati_api_key   String
 }
 
-model ShopAutoImageDescriptions {
+model Shop_auto_image_descriptions {
   shop_id String    @id
 }
+
+model ShopProductCatalogBulkUpdateRequests {
+  product_catalog_bulk_update_request_id String @id
+  shop_id String
+  start_time DateTime
+  end_time DateTime?
+  error Boolean?
+}
+
+model ShopProductDescriptionUpdates {
+  product_description_update_id String @id
+  product_id String
+  shop_id String
+  old_description String
+  new_description String
+  created_at DateTime
+}
+
+model ShopBulkUpdateRequestsDescriptionUpdates {
+  product_catalog_bulk_update_request_id String
+  product_description_update_id String @id
+  created_at DateTime
+}
+
