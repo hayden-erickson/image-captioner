@@ -496,7 +496,7 @@ export default function CaptionAllProducts() {
         </Text>
 
         <Text tone="caution" as="p" variant="bodySm">
-          WARNING: This will use your visionati API credits.
+          NOTE: This will use your visionati API credits.
           The more products you have in your catalog the more credits will be consumed.
         </Text>
 
