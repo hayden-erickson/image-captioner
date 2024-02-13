@@ -36,7 +36,7 @@ model ShopVisionatiSettings {
   credits             Int?
 }
 
-model Shop_auto_image_descriptions {
+model ShopAutoImageDescriptions {
   shop_id String    @id
 }
 
