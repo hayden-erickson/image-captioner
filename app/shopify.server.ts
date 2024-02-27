@@ -19,21 +19,32 @@ const shopify = shopifyApp({
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   restResources,
+  // Guide on how to setup shopify webhooks with remix.
+  // https://shopify.dev/docs/api/shopify-app-remix/v1/guide-webhooks#config
+  // Shopify webhooks overview
+  // https://shopify.dev/docs/apps/webhooks
+  // Shopify CLI webhook trigger
+  // https://shopify.dev/docs/apps/tools/cli/commands#webhook-trigger
+  // This object tells shopify which webhooks to send to our app and where to send them.
   webhooks: {
+    // Complete list of available webhook topics.
+    // https://shopify.dev/docs/api/admin-rest/2024-01/resources/webhook
     APP_UNINSTALLED: {
       deliveryMethod: DeliveryMethod.Http,
       callbackUrl: "/webhooks",
     },
+    // Details on how to configure google cloud pub/sub webhooks.
+    // https://shopify.dev/docs/apps/webhooks/configuration/google-cloud
+    PRODUCTS_CREATE: {
+      deliveryMethod: DeliveryMethod.PubSub,
+      pubSubProject: "image-captioner-408123",
+      pubSubTopic: "shopify-webhooks",
+    },
     PRODUCTS_UPDATE: {
-      deliveryMethod: DeliveryMethod.Http,
-      callbackUrl: "/webhooks",
-      callback: async (topic, shop, body, webhookId) => {
-        console.log('--- Product update ---');
-        const payload = JSON.parse(body);
-        console.log(payload);
-        console.log('--- /Product update ---');
-      },
-  },
+      deliveryMethod: DeliveryMethod.PubSub,
+      pubSubProject: "image-captioner-408123",
+      pubSubTopic: "shopify-webhooks",
+    },
   },
   hooks: {
     afterAuth: async ({ session }) => {
