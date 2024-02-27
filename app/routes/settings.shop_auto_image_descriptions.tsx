@@ -26,13 +26,107 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 };
 
+type WebhookSubscription = {
+  id: string;
+  endpoint: {
+    pubSubTopic?: string
+  }
+}
+
+async function deleteWebhookSubscriptionsIfExist(admin: any) {
+  const response = await admin.graphql(
+    `#graphql
+      query {
+        webhookSubscriptions(first:10){
+          nodes {
+            id
+            endpoint{
+              ... on WebhookPubSubEndpoint {
+                pubSubTopic
+              }
+            }
+          }
+        }
+      }`
+  )
+
+  let {
+    data: {
+      webhookSubscriptions: {
+        nodes
+      }
+    }
+  } = await response.json()
+
+  // There are no webhook subscriptions.
+  if( !nodes.length ) {
+    return
+  }
+
+  const pubSubWebhookIds = nodes
+    .filter((n : WebhookSubscription) => n.endpoint.pubSubTopic)
+    .map((n: WebhookSubscription) => n.id)
+
+  // There are no google pubsub webhooks to delete.
+  if( !pubSubWebhookIds.length ) {
+    return
+  }
+
+
+  await Promise.all(pubSubWebhookIds.map((id: string) =>
+    admin.graphql(`#graphql
+      mutation deleteWebhookSubscription($id: ID!) {
+        webhookSubscriptionDelete(id: $id) {
+          deletedWebhookSubscriptionId
+        }
+      }`,
+      {
+        variables: { id },
+      },
+     )
+  ))
+}
+
+// "image-captioner-408123"
+// "shopify-webhooks"
+async function createWebhookSubscriptions(admin: any, topic: string) {
+  const pubSubProject = process.env.GOOGLE_PUBSUB_PROJECT
+  const pubSubTopic = process.env.GOOGLE_PUBSUB_TOPIC
+
+  await admin.graphql(
+  `#graphql
+    mutation createPubSubSubscription($topic: WebhookSubscriptionTopic!, $pubSubProject: String!, $pubSubTopic: String!) {
+      pubSubWebhookSubscriptionCreate(
+        topic: $topic, webhookSubscription: {
+          pubSubProject: $pubSubProject,
+          pubSubTopic: $pubSubTopic
+        }
+      ) {
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `,
+    {
+      variables: {
+        topic,
+        pubSubProject,
+        pubSubTopic,
+      }
+    });
+}
+
 // Note the "action" export name, this will handle our form POST
 export const action = async ({
   request,
 }: ActionFunctionArgs) => {
-  const {session} = await authenticate.admin(request);
+  const {admin, session} = await authenticate.admin(request);
 
   if( request.method === "DELETE" ) {
+    await deleteWebhookSubscriptionsIfExist(admin)
+
     await db.shopAutoImageDescriptions.delete({
       where: {
         shop_id: session.shop,
@@ -40,6 +134,9 @@ export const action = async ({
     })
     return json({})
   }
+
+  await createWebhookSubscriptions(admin, "PRODUCTS_CREATE")
+  await createWebhookSubscriptions(admin, "PRODUCTS_UPDATE")
 
   const shopAutoImageDescriptions = await db.shopAutoImageDescriptions.upsert({
     where: {
