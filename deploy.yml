@@ -18,4 +18,4 @@ jobs:
       - name: Apply all pending migrations to the database
         run: npx prisma migrate deploy
         env:
-          DATABASE_URL: ${{ secrets.GCP_MYSQL_URL }}
+          DATABASE_URL: ${{ secrets.GOOGLE_MYSQL_URL }}
