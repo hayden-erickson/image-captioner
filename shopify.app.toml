@@ -2,7 +2,7 @@
 
 client_id = "a556031e8a54b39c2ccb91895fd1045b"
 name = "image-captioner"
-application_url = "https://chick-watched-november-stories.trycloudflare.com"
+application_url = "https://yes-publication-cave-fell.trycloudflare.com"
 embedded = true
 
 [build]
@@ -11,13 +11,13 @@ dev_store_url = "image-captioner-testing.myshopify.com"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products, write_products, read_product_listings"
+scopes = "read_product_listings,read_products,write_products"
 
 [auth]
 redirect_urls = [
-  "https://chick-watched-november-stories.trycloudflare.com/auth/callback",
-  "https://chick-watched-november-stories.trycloudflare.com/auth/shopify/callback",
-  "https://chick-watched-november-stories.trycloudflare.com/api/auth/callback"
+  "https://yes-publication-cave-fell.trycloudflare.com/auth/callback",
+  "https://yes-publication-cave-fell.trycloudflare.com/auth/shopify/callback",
+  "https://yes-publication-cave-fell.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

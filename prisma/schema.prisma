@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = env("GCP_MYSQL_URL")
+  url      = env("GOOGLE_MYSQL_URL")
 }
 
 model Session {
@@ -49,6 +49,18 @@ model ShopProductDescriptionUpdates {
 
 model ShopBulkUpdateRequestsDescriptionUpdates {
   product_catalog_bulk_update_request_id String
+  product_description_update_id String @id
+  created_at DateTime
+}
+
+model ShopWebhookRequests {
+  webhook_request_id String @id
+  created_at DateTime
+  error Boolean?
+}
+
+model ShopWebhookRequestsDescriptionUpdates {
+  webhook_request_id String
   product_description_update_id String @id
   created_at DateTime
 }

@@ -8,6 +8,15 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { restResources } from "@shopify/shopify-api/rest/admin/2024-01";
 import prisma from "./db.server";
+import {PubSub} from '@google-cloud/pubsub';
+import { webhookMessageHandler } from './pubsub'
+
+const pubSubClient = new PubSub();
+const subscription = pubSubClient.subscription(process.env.GOOGLE_PUBSUB_SUBSCRIPTION || "");
+console.log('Adding pubsub message handler for shopify webhooks.')
+subscription.on('message', webhookMessageHandler);
+
+// subscription.removeListener('message', webhookMessageHandler);
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
