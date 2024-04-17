@@ -90,7 +90,7 @@ async function deleteWebhookSubscriptionsIfExist(admin: any) {
 // "image-captioner-408123"
 // "shopify-webhooks"
 async function createWebhookSubscriptions(admin: any, topic: string) {
-  const pubSubProject = process.env.GOOGLE_PUBSUB_PROJECT
+  const pubSubProject = process.env.GOOGLE_PROJECT
   const pubSubTopic = process.env.GOOGLE_PUBSUB_TOPIC
 
   await admin.graphql(
@@ -136,7 +136,6 @@ export const action = async ({
   }
 
   await createWebhookSubscriptions(admin, "PRODUCTS_CREATE")
-  await createWebhookSubscriptions(admin, "PRODUCTS_UPDATE")
 
   const shopAutoImageDescriptions = await db.shopAutoImageDescriptions.upsert({
     where: {
@@ -196,7 +195,7 @@ export default function ShopAutoImageDescriptions() {
   }, [fetcher, isLoading, fetcherAlreadyLoaded]);
 
   return (
-      <Checkbox label="Automatic Image Descriptions"
+      <Checkbox label="Generate Automatic Image Descriptions"
         disabled={isLoading}
         checked={checked}
         onChange={toggleShopAutoImageDescriptions} />
