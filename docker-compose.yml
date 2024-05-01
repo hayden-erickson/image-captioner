@@ -1,0 +1,22 @@
+version: '3.7'
+
+services:
+  mysql:
+    hostname: ${MYSQL_HOST}
+    image: mysql/mysql-server:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PWD}
+      MYSQL_ROOT_HOST: '%'
+    healthcheck:
+          test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+          timeout: 20s
+          retries: 10
+
+  app:
+    image: image-captioner-node
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+        restart: true
