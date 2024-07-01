@@ -1,32 +1,32 @@
 type VisionatiBackend = "clarifai"
-	| "imagga"
-	| "googlevision"
-	| "rekognition"
-	| "llava"
-	| "bakllava"
-	| "jinaai"
-	| "gemini"
-	| "openai"
+  | "imagga"
+  | "googlevision"
+  | "rekognition"
+  | "llava"
+  | "bakllava"
+  | "jinaai"
+  | "gemini"
+  | "openai"
 
 type VisionatiFeature = "brands"
-	| "colors"
-	| "descriptions"
-	| "faces"
-	| "nsfw"
-	| "tags"
-	| "texts"
+  | "colors"
+  | "descriptions"
+  | "faces"
+  | "nsfw"
+  | "tags"
+  | "texts"
 
 type VisionatiRole = "artist"
-	| "caption"
-	| "comedian"
-	| "critic"
-	| "general"
-	| "ecommerce"
-	| "inspector"
-	| "promoter"
-	| "prompt"
-	| "realtor"
-	| "tweet"
+  | "caption"
+  | "comedian"
+  | "critic"
+  | "general"
+  | "ecommerce"
+  | "inspector"
+  | "promoter"
+  | "prompt"
+  | "realtor"
+  | "tweet"
 
 type VisionatiDescription = {
   description: string;
@@ -59,19 +59,23 @@ type VisionatiResponse = {
   }
 }
 
-async function sleep(ms: number) {
-    return new Promise((resolve, reject) => {
-        setTimeout(resolve, ms)
-    })
+export type URLDescriptionIdx = {
+  [key: string]: string;
 }
 
-export async function getVisionatiImageDescriptions(visionatiApiKey: string, imageURLs: string[]): Promise<string[]> {
+async function sleep(ms: number) {
+  return new Promise((resolve, reject) => {
+    setTimeout(resolve, ms)
+  })
+}
+
+export async function getVisionatiImageDescriptions(visionatiApiKey: string, imageURLs: string[]): Promise<URLDescriptionIdx> {
   const vReq: VisionatiReq = {
-      feature: ["descriptions"],
-      role: "ecommerce",
-      backend: "jinaai",
-      url: imageURLs
-    }
+    feature: ["descriptions"],
+    role: "ecommerce",
+    backend: "jinaai",
+    url: imageURLs
+  }
 
   const visionatiResp = await fetch('https://api.visionati.com/api/fetch', {
     method: "POST",
@@ -81,16 +85,20 @@ export async function getVisionatiImageDescriptions(visionatiApiKey: string, ima
     body: JSON.stringify(vReq),
   })
 
+  if (!visionatiResp.ok) {
+    throw new Error(`Visionati request failed with status ${visionatiResp.status}`)
+  }
+
   const visionatiBatchResp: VisionatiBatchResp = await visionatiResp.json()
 
-  if( !visionatiBatchResp.success || visionatiBatchResp.error || !visionatiBatchResp.response_uri) {
+  if (!visionatiBatchResp.success || visionatiBatchResp.error || !visionatiBatchResp.response_uri) {
     throw new Error(JSON.stringify({
       success: false,
       error: visionatiBatchResp.error || "Visionati request failed",
     }))
   }
 
-  let resp: VisionatiResponse = {urls: [], status: "processing"}
+  let resp: VisionatiResponse = { urls: [], status: "processing" }
 
   // Poll the visionati batch API for a response
   while (resp.status === "processing") {
@@ -99,19 +107,26 @@ export async function getVisionatiImageDescriptions(visionatiApiKey: string, ima
         Authorization: `Token ${visionatiApiKey}`,
       },
     })
+
+    if (!apiResp.ok) {
+      throw new Error("Visionati API Request Failed")
+    }
+
     resp = await apiResp.json()
 
-    if ( resp.error ) {
+    if (resp.error) {
       throw new Error(resp.error)
     }
 
     await sleep(1000) // sleep for 1 s
   }
 
+
   // Only get the first description returned from visionati.
   // TODO This may change in the future!
-  const descriptions = resp?.all?.assets.map(a => a?.descriptions?.length ? a.descriptions[0].description : "") || []
-
-  return descriptions
+  return resp?.all?.assets.reduce((out, a) => ({
+    [a?.name]: a?.descriptions?.length ? a.descriptions[0].description : "",
+    ...out,
+  }), {}) || {}
 }
 
