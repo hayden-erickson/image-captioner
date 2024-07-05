@@ -1,50 +1,50 @@
 import { LATEST_API_VERSION } from "@shopify/shopify-app-remix/server";
-import type {Message} from '@google-cloud/pubsub';
+import type { Message } from "@google-cloud/pubsub";
 import db from "./db.server";
-import { getVisionatiImageDescriptions } from './visionati'
+import { getVisionatiImageDescriptions } from "./visionati";
 
 type ShopifyProduct = {
   id: string;
   description: string;
   variants: {
     nodes: {
-      id: string
-    }[]
-  }
+      id: string;
+    }[];
+  };
   featuredImage: {
-    url: string
-  }
-}
+    url: string;
+  };
+};
 
 type UpdateProductInput = {
   productId: string;
   description: string;
   // Including only the product variant ID prevents the
   // variant from being deleted on product update
-  variantNodes: {id: string}[];
-}
+  variantNodes: { id: string }[];
+};
 
 class ShopifyClient {
   shopDomain: string;
   accessToken: string;
 
   constructor(shopDomain: string, accessToken: string) {
-    this.shopDomain = shopDomain
-    this.accessToken= accessToken
+    this.shopDomain = shopDomain;
+    this.accessToken = accessToken;
   }
 
-  async graphql(query: string, variables: any) {
+  graphql(query: string, variables: unknown) {
     return fetch(this.shopDomain, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': this.accessToken,
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": this.accessToken,
       },
       body: JSON.stringify({
         query,
         variables,
-      })
-    })
+      }),
+    });
   }
 
   async getProduct(productId: string): Promise<ShopifyProduct> {
@@ -63,16 +63,14 @@ class ShopifyClient {
           }
         }
       }`,
-      { productId }
-    )
+      { productId },
+    );
 
     const {
-      data: {
-        product
-      }
-    } = await resp.json()
+      data: { product },
+    } = await resp.json();
 
-    return product
+    return product;
   }
 
   async updateProduct(i: UpdateProductInput) {
@@ -93,51 +91,53 @@ class ShopifyClient {
           descriptionHtml: i.description,
           // Including only the product variant ID prevents the
           // variant from being deleted on product update
-          variants: i.variantNodes
+          variants: i.variantNodes,
         },
-      }
+      },
     );
   }
 }
 
-export async function webhookMessageHandler(message: Message) {
-  switch(message?.attributes['X-Shopify-Topic']) {
-    case 'products/create':
+export function webhookMessageHandler(message: Message) {
+  switch (message?.attributes["X-Shopify-Topic"]) {
+    case "products/create":
       productCreateHandler(message)
         .then(() => message.ack())
         .catch((e) => {
-          console.log(e)
-          message.nack()
-        })
-      break
+          console.log(e);
+          message.nack();
+        });
+      break;
     default:
-      console.log(`Webhook topic ${message.attributes['X-Shopify-Topic']} not handled.`)
+      console.log(
+        `Webhook topic ${message.attributes["X-Shopify-Topic"]} not handled.`,
+      );
   }
 }
 
 async function productCreateHandler(message: Message) {
-  const data = JSON.parse(message.data.toString())
+  const data = JSON.parse(message.data.toString());
 
-  if( !data?.admin_graphql_api_id ) {
-    console.log(`Shopify entity has no api ID`)
-    return
+  if (!data?.admin_graphql_api_id) {
+    console.log(`Shopify entity has no api ID`);
+    return;
   }
 
+  db.shopVisionatiApiKeys.findMany()
   const webhookRequest = await db.shopWebhookRequests.findUnique({
     where: {
-      webhook_request_id: message.id
-    }
-  })
-
+      webhook_request_id: message.id,
+    },
+  });
 
   // 1. Check if we've already handled this webhook b/c shopify can send duplicates
   //    - If yes, ack, message and terminate
-  if( webhookRequest ) {
-    console.log(`Already handled webhook request ${message.id}`)
-    return
+  if (webhookRequest) {
+    console.log(`Already handled webhook request ${message.id}`);
+    return;
   }
 
-  console.log(`First time seeing webhook request ${message.id}`)
+  console.log(`First time seeing webhook request ${message.id}`);
   // When a shop installs the app the user goes through the OAUTH flow. The app
   // frontend will receive a session token from app bridge and send it to the
   // backend. The backend will verify the JWT session token using the app's
@@ -146,52 +146,56 @@ async function productCreateHandler(message: Message) {
   // to use for authenticated requests to the shopify admin API. The access
   // token is valid for accessing shop data as long as the app is installed so
   // we can continue to use it here.
-  const shop = message.attributes['X-Shopify-Shop-Domain']
-  const shopGraphqlUrl = `https://${shop}/admin/api/${LATEST_API_VERSION}/graphql.json`
-  const session = await db.session.findFirst({where:{shop}})
+  const shop = message.attributes["X-Shopify-Shop-Domain"];
+  const shopGraphqlUrl = `https://${shop}/admin/api/${LATEST_API_VERSION}/graphql.json`;
+  const session = await db.session.findFirst({ where: { shop } });
 
-  if( !session ) {
-    throw new Error(`Shop ${shop} has no session. Therefore, we cannot make requests to the shopify API`)
+  if (!session) {
+    throw new Error(
+      `Shop ${shop} has no session. Therefore, we cannot make requests to the shopify API`,
+    );
   }
 
-  const shopifyClient = new ShopifyClient(shopGraphqlUrl, session.accessToken)
+  const shopifyClient = new ShopifyClient(shopGraphqlUrl, session.accessToken);
 
   const shopVisionatiApiKey = await db.shopVisionatiApiKeys.findUnique({
     where: {
       shop_id: session.shop,
     },
-  })
+  });
 
-  if( !shopVisionatiApiKey || !shopVisionatiApiKey?.visionati_api_key ) {
-    throw new Error(`Shop ${shop} has no visionati api key.`)
+  if (!shopVisionatiApiKey || !shopVisionatiApiKey?.visionati_api_key) {
+    throw new Error(`Shop ${shop} has no visionati api key.`);
   }
 
-  const visionatiApiKey = shopVisionatiApiKey?.visionati_api_key
-  const product = await shopifyClient.getProduct( data?.admin_graphql_api_id )
+  const visionatiApiKey = shopVisionatiApiKey?.visionati_api_key;
+  const product = await shopifyClient.getProduct(data?.admin_graphql_api_id);
 
-  if( !product?.featuredImage?.url ) {
-    console.log("Product has no image url")
-    return
+  if (!product?.featuredImage?.url) {
+    console.log("Product has no image url");
+    return;
   }
 
   // Request image description from visionati
   //    - If fail, notify pubsub of failure for retry
   //    - Mark webhook request as failure
   //    - log error
-  const descriptions = await getVisionatiImageDescriptions(visionatiApiKey, [product.featuredImage.url])
+  const descriptions = await getVisionatiImageDescriptions(visionatiApiKey, [
+    product.featuredImage.url,
+  ]);
 
-  if( !descriptions || !descriptions?.length ) {
-    console.log("No image descriptions returned from visionati")
-    return
+  if (!descriptions || !descriptions?.length) {
+    console.log("No image descriptions returned from visionati");
+    return;
   }
 
-  const newDesc = descriptions[0]
+  const newDesc = descriptions[0];
 
   await shopifyClient.updateProduct({
     productId: product.id,
     description: newDesc,
-    variantNodes: product.variants.nodes
-  })
+    variantNodes: product.variants.nodes,
+  });
 
   // === Everything is complete now log in the DB what happened. ===
 
@@ -200,10 +204,10 @@ async function productCreateHandler(message: Message) {
     data: {
       webhook_request_id: message.id,
       created_at: new Date(),
-    }
-  })
+    },
+  });
 
-  const productDescUpdateId = crypto.randomUUID()
+  const productDescUpdateId = crypto.randomUUID();
 
   // Create log in DB to track updated description
   await db.shopProductDescriptionUpdates.create({
@@ -214,18 +218,17 @@ async function productCreateHandler(message: Message) {
       product_id: product.id,
       new_description: newDesc,
       old_description: product.description,
-    }
-  })
+    },
+  });
 
   await db.shopWebhookRequestsDescriptionUpdates.create({
-    data:{
+    data: {
       product_description_update_id: productDescUpdateId,
       created_at: new Date(),
       webhook_request_id: message.id,
-    }
-  })
-
-};
+    },
+  });
+}
 
 /*
 ======= SHOPIFY WEBHOOK MESSAGE EXAMPLE ==========
