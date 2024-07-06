@@ -17,24 +17,24 @@ type ShopifyProduct = {
 };
 
 type UpdateProductInput = {
-  productId: string;
-  description: string;
+  id: string;
+  descriptionHtml: string;
   // Including only the product variant ID prevents the
   // variant from being deleted on product update
-  variantNodes: { id: string }[];
+  //variantNodes: { id: string }[];
 };
 
-class ShopifyClient {
+export class ShopifyClient {
   shopDomain: string;
   accessToken: string;
 
   constructor(shopDomain: string, accessToken: string) {
-    this.shopDomain = shopDomain;
+    this.shopDomain = `https://${shopDomain}/admin/api/${LATEST_API_VERSION}/graphql.json`;
     this.accessToken = accessToken;
   }
 
-  graphql(query: string, variables: unknown) {
-    return fetch(this.shopDomain, {
+  async graphql(query: string, variables: unknown) {
+    const resp = await fetch(this.shopDomain, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -45,6 +45,12 @@ class ShopifyClient {
         variables,
       }),
     });
+
+    if (!resp.ok) {
+      throw new Error(resp.statusText)
+    }
+
+    return resp
   }
 
   async getProduct(productId: string): Promise<ShopifyProduct> {
@@ -73,27 +79,21 @@ class ShopifyClient {
     return product;
   }
 
-  async updateProduct(i: UpdateProductInput) {
+  async updateProduct(input: UpdateProductInput) {
     await this.graphql(
-      `#graphql
-        mutation updateProduct($input: ProductInput!) {
-          productUpdate(input: $input) {
-            product {
+      `mutation UpdateProduct($input:ProductInput!){
+          productUpdate(input:$input) {
+            userErrors{
+              field
+            }
+            product{
               id
               title
               description
             }
           }
         }`,
-      {
-        input: {
-          id: i.productId,
-          descriptionHtml: i.description,
-          // Including only the product variant ID prevents the
-          // variant from being deleted on product update
-          variants: i.variantNodes,
-        },
-      },
+      { input },
     );
   }
 }
@@ -104,7 +104,7 @@ export function webhookMessageHandler(message: Message) {
       productCreateHandler(message)
         .then(() => message.ack())
         .catch((e) => {
-          console.log(e);
+          console.error(e);
           message.nack();
         });
       break;
@@ -115,15 +115,13 @@ export function webhookMessageHandler(message: Message) {
   }
 }
 
-async function productCreateHandler(message: Message) {
+export async function productCreateHandler(message: Message) {
   const data = JSON.parse(message.data.toString());
 
   if (!data?.admin_graphql_api_id) {
-    console.log(`Shopify entity has no api ID`);
     return;
   }
 
-  db.shopVisionatiApiKeys.findMany()
   const webhookRequest = await db.shopWebhookRequests.findUnique({
     where: {
       webhook_request_id: message.id,
@@ -133,11 +131,9 @@ async function productCreateHandler(message: Message) {
   // 1. Check if we've already handled this webhook b/c shopify can send duplicates
   //    - If yes, ack, message and terminate
   if (webhookRequest) {
-    console.log(`Already handled webhook request ${message.id}`);
     return;
   }
 
-  console.log(`First time seeing webhook request ${message.id}`);
   // When a shop installs the app the user goes through the OAUTH flow. The app
   // frontend will receive a session token from app bridge and send it to the
   // backend. The backend will verify the JWT session token using the app's
@@ -147,7 +143,6 @@ async function productCreateHandler(message: Message) {
   // token is valid for accessing shop data as long as the app is installed so
   // we can continue to use it here.
   const shop = message.attributes["X-Shopify-Shop-Domain"];
-  const shopGraphqlUrl = `https://${shop}/admin/api/${LATEST_API_VERSION}/graphql.json`;
   const session = await db.session.findFirst({ where: { shop } });
 
   if (!session) {
@@ -156,7 +151,7 @@ async function productCreateHandler(message: Message) {
     );
   }
 
-  const shopifyClient = new ShopifyClient(shopGraphqlUrl, session.accessToken);
+  const shopifyClient = new ShopifyClient(shop, session.accessToken);
 
   const shopVisionatiApiKey = await db.shopVisionatiApiKeys.findUnique({
     where: {
@@ -172,7 +167,6 @@ async function productCreateHandler(message: Message) {
   const product = await shopifyClient.getProduct(data?.admin_graphql_api_id);
 
   if (!product?.featuredImage?.url) {
-    console.log("Product has no image url");
     return;
   }
 
@@ -184,17 +178,14 @@ async function productCreateHandler(message: Message) {
     product.featuredImage.url,
   ]);
 
-  if (!descriptions || !descriptions?.length) {
-    console.log("No image descriptions returned from visionati");
+  if (!descriptions || Object.keys(descriptions).length === 0) {
     return;
   }
 
-  const newDesc = descriptions[0];
-
   await shopifyClient.updateProduct({
-    productId: product.id,
-    description: newDesc,
-    variantNodes: product.variants.nodes,
+    id: product.id,
+    descriptionHtml: descriptions[product.featuredImage.url],
+    //variantNodes: product.variants.nodes,
   });
 
   // === Everything is complete now log in the DB what happened. ===
@@ -216,7 +207,7 @@ async function productCreateHandler(message: Message) {
       created_at: new Date(),
       product_description_update_id: productDescUpdateId,
       product_id: product.id,
-      new_description: newDesc,
+      new_description: descriptions[product.featuredImage.url],
       old_description: product.description,
     },
   });
