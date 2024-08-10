@@ -1,6 +1,13 @@
 import db from "./db.server";
 import { getVisionatiImageDescriptions } from "./visionati"
-import { json } from "@remix-run/node";
+import {
+  updateProduct,
+  getProducts,
+  Product,
+  GetProductsFn,
+  UpdateProductDescriptionArgs,
+  UpdateProductDescriptionsFn,
+} from "./shopify"
 
 export type ProductCatalogBulkUpdateRequestResp = {
   success: false;
@@ -10,90 +17,24 @@ export type ProductCatalogBulkUpdateRequestResp = {
   productCatalogBulkUpdateRequestId: string;
 }
 
-export type UpdateShopifyProductDescriptionsFn = ({ admin, nodes, descriptions, productCatalogBulkUpdateRequestId, shopId }: UpdateShopifyProductDescriptionArgs) => Promise<void>
-
 
 type UpdateAllProductDescriptionsArgs = {
   admin: any;
   visionatiApiKey: string;
   productCatalogBulkUpdateRequestId: string;
   shopId: string;
-  getShopifyProducts: GetShopifyProductsFn;
-  updateShopifyProductDescritions: UpdateShopifyProductDescriptionsFn;
+  getShopifyProducts: GetProductsFn;
+  updateShopifyProductDescritions: UpdateProductDescriptionsFn;
 }
 
-export type GetShopifyProductsArgs = {
-  admin: any;
-  first: number;
-  after?: string;
-}
-
-type ShopifyProductVariant = {
-  id: string;
-}
-
-export type ShopifyProduct = {
-  id: string;
-  title: string;
-  description: string;
-  variants?: {
-    nodes: [ShopifyProductVariant]
-  },
-  featuredImage: {
-    url: string;
-  }
-}
-
-type ShopifyPageInfo = {
-  hasNextPage: boolean;
-  endCursor: string;
-}
-
-export type ShopifyProductConnection = {
-  nodes: ShopifyProduct[];
-  pageInfo: ShopifyPageInfo;
-}
-
-export type GetShopifyProductsFn = ({ admin, first, after }: GetShopifyProductsArgs) => Promise<ShopifyProductConnection>;
-
-
-type UpdateShopifyProductDescriptionArgs = {
-  admin: any;
-  nodes: ShopifyProduct[];
-  descriptions: { [key: string]: string };
-  productCatalogBulkUpdateRequestId: string;
-  shopId: string;
-}
 
 export type UpdateAllProductDescriptionsFn = (args: UpdateAllProductDescriptionsArgs) => Promise<void>
 
 // Update Product Descriptions
-export async function updateShopifyProductDescritions({ admin, nodes, descriptions, productCatalogBulkUpdateRequestId, shopId }: UpdateShopifyProductDescriptionArgs) {
+export async function updateShopifyProductDescritions({ admin, nodes, descriptions, productCatalogBulkUpdateRequestId, shopId }: UpdateProductDescriptionArgs) {
   for (let i = 0; i < nodes?.length; i++) {
     let desc = descriptions ? descriptions[nodes[i]?.featuredImage?.url] : ""
-    await admin.graphql(
-      `#graphql
-          mutation updateProduct($input: ProductInput!) {
-            productUpdate(input: $input) {
-              product {
-                id
-                title
-                description
-              }
-            }
-          }`,
-      {
-        variables: {
-          input: {
-            id: nodes[i].id,
-            descriptionHtml: desc,
-            // Including only the product variant ID prevents the
-            // variant from being deleted on product update
-            //variants: nodes[productIdx].variants?.nodes
-          },
-        },
-      }
-    );
+    await updateProduct(admin, nodes[i].id, desc)
 
     const productDescriptionUpdateId = crypto.randomUUID()
     await db.shopProductDescriptionUpdates.create({
@@ -115,46 +56,6 @@ export async function updateShopifyProductDescritions({ admin, nodes, descriptio
       }
     })
   }
-}
-
-
-async function getShopifyProducts({ admin, first, after }: GetShopifyProductsArgs): Promise<ShopifyProductConnection> {
-  const response = await admin.graphql(
-    `#graphql
-    query GetProducts($first: Int!, $after: String) {
-      products(first: $first, after: $after) {
-        nodes {
-          id
-          title
-          description
-          variants(first: 10) {
-            nodes { id }
-          }
-          featuredImage {
-            url
-          }
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-    }`,
-    {
-      variables: {
-        first,
-        after,
-      }
-    });
-
-
-  let {
-    data: {
-      products
-    },
-  } = await response.json();
-
-  return products
 }
 
 
@@ -189,7 +90,7 @@ export async function updateAllProductDescriptions({
     }
 
     const imageURLs = nodes
-      .map((n: ShopifyProduct) => n?.featuredImage?.url)
+      .map((n: Product) => n?.featuredImage?.url)
       .filter((u: string | null) => !!u)
 
 
@@ -244,7 +145,7 @@ export async function captionAllProducts(admin: any, shopId: string, prid: strin
     visionatiApiKey,
     productCatalogBulkUpdateRequestId: prid,
     shopId: shopId,
-    getShopifyProducts,
+    getShopifyProducts: getProducts,
     updateShopifyProductDescritions,
   })
     .then(async () => {
