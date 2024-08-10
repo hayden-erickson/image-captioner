@@ -3,8 +3,7 @@ import { ShopifyClient, productCreateHandler } from "./pubsub";
 import * as v from "./visionati";
 import type { Message } from "@google-cloud/pubsub";
 import db from "./db.server";
-import { ShopifyProduct } from "./caption_all_products";
-import exp from "constants";
+import { Product } from "./shopify";
 const given = describe;
 
 
@@ -330,7 +329,7 @@ describe("productCreateHandler", () => {
         })
 
         given("Returned product has no image URL", () => {
-          let product: ShopifyProduct;
+          let product: Product;
 
           beforeEach(() => {
             fetch.mockResolvedValueOnce(Response.json({ data: { product } }))
@@ -347,7 +346,7 @@ describe("productCreateHandler", () => {
         })
 
         given("Returned product has image URL", () => {
-          let product: ShopifyProduct;
+          let product: Product;
           let url: string;
 
           beforeEach(() => {

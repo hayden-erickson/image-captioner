@@ -1,11 +1,13 @@
 import { jest, describe, expect, beforeEach, afterEach, test } from "@jest/globals";
 import {
-  ShopifyProduct,
-  updateAllProductDescriptions,
+  Product,
+  UpdateProductDescriptionsFn,
+  GetProductsFn,
+  ProductConnection,
+} from "./shopify"
+import {
   updateShopifyProductDescritions,
-  UpdateShopifyProductDescriptionsFn,
-  GetShopifyProductsFn,
-  ShopifyProductConnection,
+  updateAllProductDescriptions,
   captionAllProducts,
 } from "./caption_all_products"
 import * as v from "./visionati";
@@ -23,8 +25,8 @@ const genFakeProducts = (n: number) => [...new Array(n)].map((x: undefined, i: n
 }))
 
 
-describe("updateShopifyProductDescritions", () => {
-  let nodes: ShopifyProduct[];
+describe("updateProductDescritions", () => {
+  let nodes: Product[];
   let admin: { graphql: ReturnType<typeof jest.fn> };
   let descriptions: v.URLDescriptionIdx;
   let productCatalogBulkUpdateRequestId: string;
@@ -139,7 +141,7 @@ describe("updateShopifyProductDescritions", () => {
         const args2 = admin.graphql.mock.calls[1][1]
         expect(args2?.variables?.input?.descriptionHtml).toBe(descriptions[nodes[1].featuredImage.url])
 
-        nodes.forEach((n: ShopifyProduct, i: number) => {
+        nodes.forEach((n: Product, i: number) => {
           const pduArg = pduMock.mock.calls[i][0]
           expect(pduArg?.data?.product_id).toBe(n.id)
           expect(pduArg?.data?.old_description).toBe(n.description)
@@ -176,7 +178,7 @@ describe("updateAllProductDescriptions", () => {
   let getShopifyProducts: ReturnType<typeof jest.fn>
   let updateShopifyProductDescritions: ReturnType<typeof jest.fn>
   let vSpy: any;
-  let nodes: ShopifyProduct[];
+  let nodes: Product[];
 
   beforeEach(() => {
     admin = {
@@ -205,8 +207,8 @@ describe("updateAllProductDescriptions", () => {
         visionatiApiKey,
         productCatalogBulkUpdateRequestId,
         shopId,
-        getShopifyProducts: getShopifyProducts as GetShopifyProductsFn,
-        updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateShopifyProductDescriptionsFn,
+        getShopifyProducts: getShopifyProducts as GetProductsFn,
+        updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateProductDescriptionsFn,
       })).rejects.toThrowError(errMsg)
     })
   })
@@ -237,8 +239,8 @@ describe("updateAllProductDescriptions", () => {
         visionatiApiKey,
         productCatalogBulkUpdateRequestId,
         shopId,
-        getShopifyProducts: getShopifyProducts as GetShopifyProductsFn,
-        updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateShopifyProductDescriptionsFn,
+        getShopifyProducts: getShopifyProducts as GetProductsFn,
+        updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateProductDescriptionsFn,
       })).not.toThrow()
     })
 
@@ -257,7 +259,7 @@ describe("updateAllProductDescriptions", () => {
         }
       }))
 
-      const descriptions = nodes.reduce((all: { [key: string]: string }, n: ShopifyProduct) => ({ ...all, [n.featuredImage.url]: n.description }), {})
+      const descriptions = nodes.reduce((all: { [key: string]: string }, n: Product) => ({ ...all, [n.featuredImage.url]: n.description }), {})
 
       vSpy = jest.spyOn(v, 'getVisionatiImageDescriptions').mockResolvedValue(descriptions)
 
@@ -277,12 +279,12 @@ describe("updateAllProductDescriptions", () => {
         const imageURLsArg = vSpy.mock.calls[0][1]
 
         expect(visionatiApiKeyArg).toBe(visionatiApiKey)
-        expect(imageURLsArg).toStrictEqual(nodes.map((n: ShopifyProduct) => n.featuredImage.url))
+        expect(imageURLsArg).toStrictEqual(nodes.map((n: Product) => n.featuredImage.url))
 
         const descriptionsArg = updateShopifyProductDescritions.mock.calls[0][0].descriptions
         const nodesArg = updateShopifyProductDescritions.mock.calls[0][0].nodes
 
-        expect(descriptionsArg).toStrictEqual(nodes.reduce((all: { [key: string]: string }, n: ShopifyProduct) => ({ ...all, [n.featuredImage.url]: n.description }), {}))
+        expect(descriptionsArg).toStrictEqual(nodes.reduce((all: { [key: string]: string }, n: Product) => ({ ...all, [n.featuredImage.url]: n.description }), {}))
         expect(nodesArg).toStrictEqual(nodes)
       })
 
@@ -292,8 +294,8 @@ describe("updateAllProductDescriptions", () => {
           visionatiApiKey,
           productCatalogBulkUpdateRequestId,
           shopId,
-          getShopifyProducts: getShopifyProducts as GetShopifyProductsFn,
-          updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateShopifyProductDescriptionsFn,
+          getShopifyProducts: getShopifyProducts as GetProductsFn,
+          updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateProductDescriptionsFn,
         })).not.toThrow()
       })
     })
@@ -313,8 +315,8 @@ describe("updateAllProductDescriptions", () => {
           visionatiApiKey,
           productCatalogBulkUpdateRequestId,
           shopId,
-          getShopifyProducts: getShopifyProducts as GetShopifyProductsFn,
-          updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateShopifyProductDescriptionsFn,
+          getShopifyProducts: getShopifyProducts as GetProductsFn,
+          updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateProductDescriptionsFn,
         })).rejects.toThrowError(errMsg)
       })
     })
@@ -330,8 +332,8 @@ describe("updateAllProductDescriptions", () => {
           visionatiApiKey,
           productCatalogBulkUpdateRequestId,
           shopId,
-          getShopifyProducts: getShopifyProducts as GetShopifyProductsFn,
-          updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateShopifyProductDescriptionsFn,
+          getShopifyProducts: getShopifyProducts as GetProductsFn,
+          updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateProductDescriptionsFn,
         })).rejects.toThrowError("We did not receive all image descriptions from visionati")
 
       })
@@ -357,8 +359,8 @@ describe("updateAllProductDescriptions", () => {
           visionatiApiKey,
           productCatalogBulkUpdateRequestId,
           shopId,
-          getShopifyProducts: getShopifyProducts as GetShopifyProductsFn,
-          updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateShopifyProductDescriptionsFn,
+          getShopifyProducts: getShopifyProducts as GetProductsFn,
+          updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateProductDescriptionsFn,
         })).rejects.toThrowError(errMsg)
 
       })
@@ -371,7 +373,7 @@ describe("updateAllProductDescriptions", () => {
     let pageCount: number;
     let getShopifyProductsCallCount: number;
     let getVisionatiImageDescriptionsCallCount: number;
-    let pages: ShopifyProductConnection[];
+    let pages: ProductConnection[];
 
     beforeEach(() => {
       pageCount = 3;
@@ -382,7 +384,9 @@ describe("updateAllProductDescriptions", () => {
         nodes: genFakeProducts(5),
         pageInfo: {
           endCursor: crypto.randomUUID(),
+          startCursor: '',
           hasNextPage: i + 1 < pageCount,
+          hasPreviousPage: false,
         }
       }))
 
@@ -395,7 +399,7 @@ describe("updateAllProductDescriptions", () => {
       vSpy = jest.spyOn(v, 'getVisionatiImageDescriptions').mockImplementation(
         (visionatiApiKey: string, imageURLs: string[]): Promise<v.URLDescriptionIdx> => {
           let currentDescriptions = pages[getVisionatiImageDescriptionsCallCount].nodes
-            .reduce((all: { [key: string]: string }, n: ShopifyProduct) =>
+            .reduce((all: { [key: string]: string }, n: Product) =>
               ({ ...all, [n.featuredImage.url]: n.description }), {})
 
           getVisionatiImageDescriptionsCallCount++;
@@ -417,8 +421,8 @@ describe("updateAllProductDescriptions", () => {
         visionatiApiKey,
         productCatalogBulkUpdateRequestId,
         shopId,
-        getShopifyProducts: getShopifyProducts as GetShopifyProductsFn,
-        updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateShopifyProductDescriptionsFn,
+        getShopifyProducts: getShopifyProducts as GetProductsFn,
+        updateShopifyProductDescritions: updateShopifyProductDescritions as UpdateProductDescriptionsFn,
       })).not.toThrow()
 
     })
