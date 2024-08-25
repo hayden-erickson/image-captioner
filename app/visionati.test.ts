@@ -1,10 +1,64 @@
+import db from "./db.server";
 import { jest, describe, expect, beforeEach, afterEach, test } from "@jest/globals";
-import { getVisionatiImageDescriptions } from "./visionati";
+import { visionatiClient, getVisionatiImageDescriptions } from "./visionati";
 const given = describe;
 
 const apiKey = crypto.randomUUID()
 let imageURLs: string[] = []
 
+
+describe("visionatiClient", () => {
+  let svakMock: any;
+  let shopId: string;
+
+  beforeEach(() => {
+    shopId = "my_test_shop.com"
+    svakMock = jest.spyOn(db.shopVisionatiApiKeys, 'findUnique')
+  })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  given("DB call fails", () => {
+    let errMsg = 'DB connection failed';
+
+    beforeEach(() => {
+      svakMock.mockRejectedValueOnce(new Error(errMsg))
+    })
+
+    test("Error is thrown", async () => {
+      await expect(() => visionatiClient(shopId)).rejects.toThrowError(errMsg)
+    })
+  })
+
+  given("Shop has no visionati API key", () => {
+    beforeEach(() => {
+      svakMock.mockResolvedValueOnce({
+        shop_id: '',
+        visionati_api_key: '',
+      })
+    })
+
+    test("Error is thrown", async () => {
+      await expect(() => visionatiClient(shopId)).rejects.toThrowError("shop has no visionati api key")
+    })
+  })
+
+  given("Shop has visionati API key", () => {
+    beforeEach(() => {
+      svakMock.mockResolvedValueOnce({
+        shop_id: shopId,
+        visionati_api_key: crypto.randomUUID(),
+      })
+    })
+
+    test("Client function is returned", async () => {
+      expect(() => visionatiClient(shopId)).not.toBeNull()
+    })
+  })
+
+})
 
 describe("getVisionatiImageDescriptions", () => {
   afterEach(() => {

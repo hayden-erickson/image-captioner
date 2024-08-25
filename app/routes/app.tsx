@@ -23,6 +23,7 @@ export default function App() {
         <Link to="/app" rel="home">
           Home
         </Link>
+        { /* <Link to="/app/additional">Additional page</Link> */}
         {/* Add links to different sub pages here*/}
       </ui-nav-menu>
 

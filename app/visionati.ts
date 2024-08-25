@@ -1,3 +1,5 @@
+import db from "./db.server";
+
 type VisionatiBackend = "clarifai"
   | "imagga"
   | "googlevision"
@@ -63,17 +65,36 @@ export type URLDescriptionIdx = {
   [key: string]: string;
 }
 
+export type GetImageDescriptionsFn = (imageUrls: string[]) => Promise<URLDescriptionIdx>
+
 async function sleep(ms: number) {
   return new Promise((resolve, reject) => {
     setTimeout(resolve, ms)
   })
 }
 
+export async function visionatiClient(shopId: string): Promise<GetImageDescriptionsFn> {
+  const shopVisionatiApiKey = await db.shopVisionatiApiKeys.findUnique({
+    where: {
+      shop_id: shopId,
+    },
+  })
+
+  if (!shopVisionatiApiKey || !shopVisionatiApiKey?.visionati_api_key) {
+    throw new Error("shop has no visionati api key")
+  }
+
+  return async function(imageURLs: string[]): Promise<URLDescriptionIdx> {
+    return getVisionatiImageDescriptions(shopVisionatiApiKey?.visionati_api_key, imageURLs)
+  }
+}
+
+
 export async function getVisionatiImageDescriptions(visionatiApiKey: string, imageURLs: string[]): Promise<URLDescriptionIdx> {
   const vReq: VisionatiReq = {
     feature: ["descriptions"],
     role: "ecommerce",
-    backend: "jinaai",
+    backend: "gemini",
     url: imageURLs
   }
 
