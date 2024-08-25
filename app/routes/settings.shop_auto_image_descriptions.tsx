@@ -7,20 +7,22 @@ import {
 } from '@remix-run/react'
 
 import {
+  BlockStack,
   Checkbox,
+  Text,
 } from "@shopify/polaris";
 
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const {session} = await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
   const shopAutoImageDescription = await db.shopAutoImageDescriptions.findUnique(
-  {
-    where: {
-      shop_id: session.shop,
-    },
-  })
+    {
+      where: {
+        shop_id: session.shop,
+      },
+    })
 
   return json(shopAutoImageDescription)
 
@@ -59,16 +61,16 @@ async function deleteWebhookSubscriptionsIfExist(admin: any) {
   } = await response.json()
 
   // There are no webhook subscriptions.
-  if( !nodes.length ) {
+  if (!nodes.length) {
     return
   }
 
   const pubSubWebhookIds = nodes
-    .filter((n : WebhookSubscription) => n.endpoint.pubSubTopic)
+    .filter((n: WebhookSubscription) => n.endpoint.pubSubTopic)
     .map((n: WebhookSubscription) => n.id)
 
   // There are no google pubsub webhooks to delete.
-  if( !pubSubWebhookIds.length ) {
+  if (!pubSubWebhookIds.length) {
     return
   }
 
@@ -83,7 +85,7 @@ async function deleteWebhookSubscriptionsIfExist(admin: any) {
       {
         variables: { id },
       },
-     )
+    )
   ))
 }
 
@@ -94,7 +96,7 @@ async function createWebhookSubscriptions(admin: any, topic: string) {
   const pubSubTopic = process.env.GOOGLE_PUBSUB_TOPIC
 
   await admin.graphql(
-  `#graphql
+    `#graphql
     mutation createPubSubSubscription($topic: WebhookSubscriptionTopic!, $pubSubProject: String!, $pubSubTopic: String!) {
       pubSubWebhookSubscriptionCreate(
         topic: $topic, webhookSubscription: {
@@ -122,9 +124,9 @@ async function createWebhookSubscriptions(admin: any, topic: string) {
 export const action = async ({
   request,
 }: ActionFunctionArgs) => {
-  const {admin, session} = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
-  if( request.method === "DELETE" ) {
+  if (request.method === "DELETE") {
     await deleteWebhookSubscriptionsIfExist(admin)
 
     await db.shopAutoImageDescriptions.delete({
@@ -162,30 +164,30 @@ export default function ShopAutoImageDescriptions() {
     const method = enabled ? "POST" : "DELETE"
     const verb = enabled ? "Enabled" : "Disabled"
 
-    await fetcher.submit({},{method, action:"/settings/shop_auto_image_descriptions"});
+    await fetcher.submit({}, { method, action: "/settings/shop_auto_image_descriptions" });
     setChecked(enabled)
     shopify.toast.show(`${verb} automatic image descriptions`);
   }
 
   useEffect(() => {
-    if ( isLoading ) {
+    if (isLoading) {
       return
     }
 
     // we're not loading
-    if ( fetcher.data ) {
-      setChecked(fetcher?.data?.shop_id)
+    if (fetcher.data) {
+      setChecked(!!fetcher?.data?.shop_id)
       return
     }
 
     // there is no fetcher data
-    if ( fetcherAlreadyLoaded ) {
+    if (fetcherAlreadyLoaded) {
       return
     }
 
     // the fetcher has not yet loaded
-    const loadData = async () => {
-      await fetcher.load("/settings/shop_auto_image_descriptions")
+    const loadData = () => {
+      fetcher.load("/settings/shop_auto_image_descriptions")
       // If automatic image descriptions are disabled we set loaded to true so
       // that this effect doesn't loop forever.
       setFetcherAlreadyLoaded(true)
@@ -195,9 +197,14 @@ export default function ShopAutoImageDescriptions() {
   }, [fetcher, isLoading, fetcherAlreadyLoaded]);
 
   return (
+    <BlockStack gap='200'>
       <Checkbox label="Generate Automatic Image Descriptions"
         disabled={isLoading}
         checked={checked}
         onChange={toggleShopAutoImageDescriptions} />
+      <Text as='p' tone='subdued'>
+        Use Visionati to automatically generate image descriptions when new products are created.
+      </Text>
+    </BlockStack>
   )
 }

@@ -1,10 +1,9 @@
 import { jest, describe, expect, beforeEach, afterEach, test } from "@jest/globals";
-import {
-  ProductFilterFn,
-  ProductPageFn,
-} from "./shopify.server"
+
 import {
   Product,
+  ProductFilterFn,
+  ProductPageFn,
 } from "./shopify.types"
 
 import {
@@ -12,12 +11,10 @@ import {
   bulkProductUpdate,
   logProductDescriptionUpdatesClient,
   filterProductsHaveAIDescriptions,
-  countShopDescriptions,
 } from "./bulk_product_operations.server"
 import {
   URLDescriptionIdx
 } from './visionati.types'
-import * as v from "./visionati.server";
 import db from "./db.server";
 
 const given = describe;

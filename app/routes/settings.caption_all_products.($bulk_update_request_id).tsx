@@ -13,12 +13,12 @@ import {
 } from "@shopify/polaris";
 
 import {
-  ProductCatalogBulkUpdateRequestResp,
-  captionAllProducts,
-  updateAllProductDescriptions,
-} from "../caption_all_products"
+  bulkProductUpdate,
+  logAllProductDescriptionUpdates,
+} from "../bulk_product_operations"
 
-export const loader = async ({ request, params }: LoaderFunctionArgs) => {
+
+export async function loader({ request, params }: LoaderFunctionArgs) {
   const { session } = await authenticate.admin(request)
 
   if (!params['bulk_update_request_id']) {
@@ -55,14 +55,16 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   })
 }
 
-export const action = async ({ request }: ActionFunctionArgs): Promise<TypedResponse<ProductCatalogBulkUpdateRequestResp>> => {
+export async function action({ request }: ActionFunctionArgs) {
   const { admin, session } = await authenticate.admin(request)
-
   const productCatalogBulkUpdateRequestId = crypto.randomUUID()
+  await bulkProductUpdate(
+    productCatalogBulkUpdateRequestId,
+    session.shop,
+    logAllProductDescriptionUpdates(admin, session.shop),
+  )
 
-  captionAllProducts(admin, session.shop, productCatalogBulkUpdateRequestId, updateAllProductDescriptions)
-
-  return json({ success: true, productCatalogBulkUpdateRequestId });
+  return json({ productCatalogBulkUpdateRequestId });
 }
 
 
