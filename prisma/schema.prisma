@@ -42,6 +42,7 @@ model ShopVisionatiSettings {
   backend             String?
   role                String?
   custom_prompt       String?
+  credits             Int?
 }
 
 model ShopAutoImageDescriptions {

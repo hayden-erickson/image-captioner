@@ -196,7 +196,6 @@ describe("getVisionatiImageDescriptions", () => {
         expect(args.where.shop_id).toBe(settings.shopId)
       })
 
-
       test("Descriptions are returned for each URL", async () => {
         await expect(getVisionatiImageDescriptions(settings, imageURLs)).resolves.toEqual(exp)
       })

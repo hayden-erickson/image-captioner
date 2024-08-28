@@ -6,6 +6,7 @@ import {
 } from '@remix-run/react'
 
 import {
+  Banner,
   BlockStack,
   Button,
   ButtonGroup,
@@ -36,8 +37,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         shop_id: session.shop,
       },
     })
-
-  console.log(shopVisionatiSettings)
 
   return json(shopVisionatiSettings)
 
@@ -214,6 +213,9 @@ function AdvancedSettings(props: AdvancedSettingsProps) {
   )
 }
 
+
+type SetTouchedStateFn = (state: any) => void
+
 export default function Settings() {
   const fetcher = useFetcher<typeof loader>();
   const [apiKey, setVisionatiApiKey] = useState("")
@@ -221,7 +223,22 @@ export default function Settings() {
   const [backend, setBackend] = useState(DEFAULT_BACKEND)
   const [prompt, setPrompt] = useState('')
   const [fetcherAlreadyLoaded, setFetcherAlreadyLoaded] = useState(false)
+  const [settingsTouched, setSettingsTouched] = useState(false)
+  const [showCredits, setShowCredits] = useState(true)
   const isLoading = fetcher.state !== "idle"
+  const credits = fetcher?.data?.credits
+
+  const withTouched = (fn: SetTouchedStateFn): SetTouchedStateFn => {
+    return function(state: any): void {
+      fn(state)
+      setSettingsTouched(true)
+    }
+  }
+
+  const setVisionatiApiKeyTouched = withTouched(setVisionatiApiKey)
+  const setRoleTouched = withTouched(setRole)
+  const setBackendTouched = withTouched(setBackend)
+  const setPromptTouched = withTouched(setPrompt)
 
   const saveSettings = () => {
     const data = {
@@ -238,6 +255,8 @@ export default function Settings() {
       action: "/settings/visionati",
       encType: "application/json",
     });
+
+    setSettingsTouched(false)
     shopify.toast.show("Settings Saved");
   }
 
@@ -270,36 +289,61 @@ export default function Settings() {
 
   return (
     <FormLayout>
+      {
+        apiKey ? null :
+          <Banner tone="warning">
+            <p>
+              Visit your {" "}
+              <Link
+                target="_blank"
+                url="https://api.visionati.com" >
+                Visionati profile page
+              </Link> {" "}
+              to get your API key.
+              Without this key we can not generate image descriptions.
+            </p>
+          </Banner>
+      }
+      {
+        !credits ? null :
+          !showCredits ? null :
+            <Banner onDismiss={() => setShowCredits(false)} >
+              Remaining Credits: {credits.toString()}
+            </Banner>
+      }
+
       <TextField label="API Key"
         disabled={isLoading}
         value={apiKey}
-        onChange={k => setVisionatiApiKey(k)}
-        helpText={<p>
-          Visit your {" "}
-          <Link
-            target="_blank"
-            url="https://api.visionati.com/login" >
-            Visionati profile page
-          </Link> {" "}
-          to get your API key.
-          Without this key we can not generate image descriptions.
-        </p>}
+        clearButton
+        onClearButtonClick={() => setVisionatiApiKeyTouched('')}
+        onChange={k => setVisionatiApiKeyTouched(k)}
         autoComplete="off" />
 
       <AdvancedSettings
         backend={backend}
-        onBackendChange={setBackend}
+        onBackendChange={setBackendTouched}
         role={role}
-        onRoleChange={setRole}
+        onRoleChange={setRoleTouched}
         prompt={prompt}
-        onPromptChange={setPrompt}
+        onPromptChange={setPromptTouched}
       />
 
-      <Button variant="primary"
-        loading={isLoading}
-        onClick={saveSettings} >
-        Save
-      </Button>
+      <ButtonGroup>
+        {
+          !settingsTouched ? null :
+            <Button variant="primary"
+              loading={isLoading}
+              onClick={saveSettings} >
+              Save Settings
+            </Button>
+        }
+
+        <Link url="https://api.visionati.com/payment?product=starter" target="_blank">
+          Buy credits
+        </Link>
+
+      </ButtonGroup>
 
     </FormLayout>
   )
