@@ -1,7 +1,7 @@
 import { LATEST_API_VERSION } from "@shopify/shopify-app-remix/server";
 import type { Message } from "@google-cloud/pubsub";
 import db from "./db.server";
-import { getVisionatiImageDescriptions } from "./visionati";
+import { VisionatiBackend, VisionatiRole, VisionatiSettings, visionatiClient } from "./visionati";
 
 type ShopifyProduct = {
   id: string;
@@ -152,18 +152,8 @@ export async function productCreateHandler(message: Message) {
   }
 
   const shopifyClient = new ShopifyClient(shop, session.accessToken);
+  const getVisionatiImageDescriptions = await visionatiClient(shop)
 
-  const shopVisionatiApiKey = await db.shopVisionatiApiKeys.findUnique({
-    where: {
-      shop_id: session.shop,
-    },
-  });
-
-  if (!shopVisionatiApiKey || !shopVisionatiApiKey?.visionati_api_key) {
-    throw new Error(`Shop ${shop} has no visionati api key.`);
-  }
-
-  const visionatiApiKey = shopVisionatiApiKey?.visionati_api_key;
   const product = await shopifyClient.getProduct(data?.admin_graphql_api_id);
 
   if (!product?.featuredImage?.url) {
@@ -174,9 +164,7 @@ export async function productCreateHandler(message: Message) {
   //    - If fail, notify pubsub of failure for retry
   //    - Mark webhook request as failure
   //    - log error
-  const descriptions = await getVisionatiImageDescriptions(visionatiApiKey, [
-    product.featuredImage.url,
-  ]);
+  const descriptions = await getVisionatiImageDescriptions([product.featuredImage.url]);
 
   if (!descriptions || Object.keys(descriptions).length === 0) {
     return;

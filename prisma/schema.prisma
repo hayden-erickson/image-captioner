@@ -26,6 +26,14 @@ model ShopVisionatiApiKeys {
   visionati_api_key   String
 }
 
+model ShopVisionatiSettings {
+  shop_id             String    @id
+  api_key             String
+  backend             String?
+  role                String?
+  custom_prompt       String?
+}
+
 model ShopAutoImageDescriptions {
   shop_id String    @id
 }

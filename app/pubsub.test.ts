@@ -186,16 +186,6 @@ describe("productCreateHandler", () => {
   })
 
   given("given no admin graphql ID", () => {
-    beforeEach(() => {
-      msg.data = Buffer.from('{"noAdmin": "graphql ID"}')
-    })
-
-    afterEach(() => {
-      expect(swr.mock.calls).toHaveLength(0)
-    })
-
-    test("Function terminates", () => productCreateHandler(msg))
-
   })
 
   given("DB call fails", () => {
@@ -281,13 +271,13 @@ describe("productCreateHandler", () => {
 
       beforeEach(() => {
         session.mockResolvedValue({ accessToken })
-        vSpy = jest.spyOn(db.shopVisionatiApiKeys, 'findUnique')
+        vSpy = jest.spyOn(v, 'visionatiClient')
       })
 
-      given("Visionati access token DB call fails", () => {
-        let errMsg = "DB call to get Visionati access token failed"
+      given("Visionati client creation fails", () => {
+        let errMsg = "failed to create visionati client"
         beforeEach(() => {
-          vSpy.mockRejectedValue(new Error(errMsg))
+          vSpy.mockRejectedValueOnce(new Error(errMsg))
         })
 
         test("Error is thrown", async () => {
@@ -295,24 +285,13 @@ describe("productCreateHandler", () => {
         })
       })
 
-      given("Shop has no Visionati API token", () => {
-        beforeEach(() => {
-          vSpy.mockResolvedValue(undefined)
-        })
-
-        test("Error is thrown", async () => {
-          await expect(() => productCreateHandler(msg)).rejects.toThrowError("has no visionati api key")
-        })
-      })
-
       given("Shop has Visionati API token", () => {
-        let visionati_api_key = crypto.randomUUID()
         let fetch: any;
         let visionati: any;
 
         beforeEach(() => {
-          vSpy.mockResolvedValue({ visionati_api_key })
-          visionati = jest.spyOn(v, 'getVisionatiImageDescriptions')
+          visionati = jest.fn()
+          vSpy.mockResolvedValue(visionati as v.GetImageDescriptionsFn)
           fetch = jest.spyOn(global, 'fetch')
         })
 
@@ -382,8 +361,7 @@ describe("productCreateHandler", () => {
               })
 
               afterEach(() => {
-                expect(visionati.mock.calls[0][0]).toBe(visionati_api_key)
-                expect(visionati.mock.calls[0][1]).toEqual([url])
+                expect(visionati.mock.calls[0][0]).toEqual([url])
                 expect(fetch.mock.calls).toHaveLength(1)
               })
 

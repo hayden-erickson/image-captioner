@@ -172,7 +172,7 @@ function ProductReview({
         onChange={setUserDescription}
         autoComplete="off" />
 
-      <InlineStack gap='200' align='end'>
+      <InlineStack gap='200' align='start'>
         {
           userDescription && userDescription !== product.aiDescription ?
             <Button

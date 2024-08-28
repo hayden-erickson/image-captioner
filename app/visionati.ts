@@ -1,6 +1,6 @@
 import db from "./db.server";
 
-type VisionatiBackend = "clarifai"
+export type VisionatiBackend = "clarifai"
   | "imagga"
   | "googlevision"
   | "rekognition"
@@ -18,7 +18,7 @@ type VisionatiFeature = "brands"
   | "tags"
   | "texts"
 
-type VisionatiRole = "artist"
+export type VisionatiRole = "artist"
   | "caption"
   | "comedian"
   | "critic"
@@ -29,6 +29,10 @@ type VisionatiRole = "artist"
   | "prompt"
   | "realtor"
   | "tweet"
+
+export const DEFAULT_ROLE: VisionatiRole = "ecommerce"
+export const DEFAULT_BACKEND: VisionatiBackend = "gemini"
+const DEFAULT_FEATURES: [VisionatiFeature] = ['descriptions']
 
 type VisionatiDescription = {
   description: string;
@@ -45,6 +49,7 @@ type VisionatiReq = {
   url: string[];
   role: VisionatiRole;
   feature: [VisionatiFeature] | VisionatiFeature;
+  prompt?: string;
 }
 
 type VisionatiBatchResp = {
@@ -61,6 +66,14 @@ type VisionatiResponse = {
   }
 }
 
+export type VisionatiSettings = {
+  apiKey: string;
+  role?: VisionatiRole | null;
+  backend?: VisionatiBackend | null;
+  customPrompt?: string;
+}
+
+
 export type URLDescriptionIdx = {
   [key: string]: string;
 }
@@ -68,40 +81,48 @@ export type URLDescriptionIdx = {
 export type GetImageDescriptionsFn = (imageUrls: string[]) => Promise<URLDescriptionIdx>
 
 async function sleep(ms: number) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
 }
 
 export async function visionatiClient(shopId: string): Promise<GetImageDescriptionsFn> {
-  const shopVisionatiApiKey = await db.shopVisionatiApiKeys.findUnique({
+  const settings = await db.shopVisionatiSettings.findUnique({
     where: {
       shop_id: shopId,
     },
   })
 
-  if (!shopVisionatiApiKey || !shopVisionatiApiKey?.visionati_api_key) {
+  if (!settings || !settings?.api_key) {
     throw new Error("shop has no visionati api key")
   }
 
   return async function(imageURLs: string[]): Promise<URLDescriptionIdx> {
-    return getVisionatiImageDescriptions(shopVisionatiApiKey?.visionati_api_key, imageURLs)
+    return getVisionatiImageDescriptions({
+      apiKey: settings.api_key,
+      role: settings.role as VisionatiRole,
+      backend: settings.backend as VisionatiBackend,
+      customPrompt: settings.custom_prompt || undefined,
+    }, imageURLs)
   }
 }
 
 
-export async function getVisionatiImageDescriptions(visionatiApiKey: string, imageURLs: string[]): Promise<URLDescriptionIdx> {
+export async function getVisionatiImageDescriptions(settings: VisionatiSettings, imageURLs: string[]): Promise<URLDescriptionIdx> {
   const vReq: VisionatiReq = {
-    feature: ["descriptions"],
-    role: "ecommerce",
-    backend: "gemini",
+    feature: DEFAULT_FEATURES,
+    role: settings.role || DEFAULT_ROLE,
+    backend: settings.backend || DEFAULT_BACKEND,
+    ...(settings.customPrompt ? { prompt: settings.customPrompt } : null),
     url: imageURLs
   }
+
+  console.log(vReq)
 
   const visionatiResp = await fetch('https://api.visionati.com/api/fetch', {
     method: "POST",
     headers: {
-      Authorization: `Token ${visionatiApiKey}`,
+      Authorization: `Token ${settings.apiKey}`,
     },
     body: JSON.stringify(vReq),
   })
@@ -125,7 +146,7 @@ export async function getVisionatiImageDescriptions(visionatiApiKey: string, ima
   while (resp.status === "processing") {
     const apiResp = await fetch(visionatiBatchResp.response_uri, {
       headers: {
-        Authorization: `Token ${visionatiApiKey}`,
+        Authorization: `Token ${settings.apiKey}`,
       },
     })
 

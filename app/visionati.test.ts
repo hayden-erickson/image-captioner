@@ -1,9 +1,15 @@
 import db from "./db.server";
 import { jest, describe, expect, beforeEach, afterEach, test } from "@jest/globals";
-import { visionatiClient, getVisionatiImageDescriptions } from "./visionati";
+import { visionatiClient, getVisionatiImageDescriptions, VisionatiSettings, DEFAULT_ROLE, DEFAULT_BACKEND } from "./visionati";
 const given = describe;
 
 const apiKey = crypto.randomUUID()
+const settings: VisionatiSettings = {
+  apiKey,
+  role: DEFAULT_ROLE,
+  backend: DEFAULT_BACKEND,
+}
+
 let imageURLs: string[] = []
 
 
@@ -13,7 +19,7 @@ describe("visionatiClient", () => {
 
   beforeEach(() => {
     shopId = "my_test_shop.com"
-    svakMock = jest.spyOn(db.shopVisionatiApiKeys, 'findUnique')
+    svakMock = jest.spyOn(db.shopVisionatiSettings, 'findUnique')
   })
 
   afterEach(() => {
@@ -74,7 +80,7 @@ describe("getVisionatiImageDescriptions", () => {
     });
 
     test("Error is thrown", async () => {
-      await expect(() => getVisionatiImageDescriptions(apiKey, imageURLs)).rejects.toThrowError(errMsg)
+      await expect(() => getVisionatiImageDescriptions(settings, imageURLs)).rejects.toThrowError(errMsg)
     })
   })
 
@@ -85,7 +91,7 @@ describe("getVisionatiImageDescriptions", () => {
     });
 
     test("Error is thrown", async () => {
-      await expect(() => getVisionatiImageDescriptions(apiKey, imageURLs)).rejects.toThrowError('request failed')
+      await expect(() => getVisionatiImageDescriptions(settings, imageURLs)).rejects.toThrowError('request failed')
     })
   })
 
@@ -98,7 +104,7 @@ describe("getVisionatiImageDescriptions", () => {
     });
 
     test("Error is thrown", async () => {
-      await expect(getVisionatiImageDescriptions(apiKey, imageURLs)).rejects.toThrowError(visionatiErrMsg)
+      await expect(getVisionatiImageDescriptions(settings, imageURLs)).rejects.toThrowError(visionatiErrMsg)
     })
   })
 
@@ -109,7 +115,7 @@ describe("getVisionatiImageDescriptions", () => {
     });
 
     test("Error is thrown", async () => {
-      await expect(getVisionatiImageDescriptions(apiKey, imageURLs)).rejects.toThrow()
+      await expect(getVisionatiImageDescriptions(settings, imageURLs)).rejects.toThrow()
     })
   })
 
@@ -120,7 +126,7 @@ describe("getVisionatiImageDescriptions", () => {
     });
 
     test("Error is thrown", async () => {
-      await expect(getVisionatiImageDescriptions(apiKey, imageURLs)).rejects.toThrowError("Visionati request failed")
+      await expect(getVisionatiImageDescriptions(settings, imageURLs)).rejects.toThrowError("Visionati request failed")
     })
   })
 
@@ -139,7 +145,7 @@ describe("getVisionatiImageDescriptions", () => {
       })
 
       test("Error is thrown", async () => {
-        await expect(getVisionatiImageDescriptions(apiKey, imageURLs)).rejects.toThrowError(errMsg)
+        await expect(getVisionatiImageDescriptions(settings, imageURLs)).rejects.toThrowError(errMsg)
       })
     })
 
@@ -149,7 +155,7 @@ describe("getVisionatiImageDescriptions", () => {
       })
 
       test("Error is thrown", async () => {
-        await expect(getVisionatiImageDescriptions(apiKey, imageURLs)).rejects.toThrowError('Visionati API Request Failed')
+        await expect(getVisionatiImageDescriptions(settings, imageURLs)).rejects.toThrowError('Visionati API Request Failed')
       })
 
     })
@@ -183,7 +189,7 @@ describe("getVisionatiImageDescriptions", () => {
       })
 
       test("Descriptions are returned for each URL", async () => {
-        await expect(getVisionatiImageDescriptions(apiKey, imageURLs)).resolves.toEqual(exp)
+        await expect(getVisionatiImageDescriptions(settings, imageURLs)).resolves.toEqual(exp)
       })
 
     })
