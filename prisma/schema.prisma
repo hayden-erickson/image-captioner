@@ -18,12 +18,7 @@ model Session {
   scope       String?
   expires     DateTime?
   accessToken String
-  userId      BigInt?
-}
-
-model ShopVisionatiApiKeys {
-  shop_id             String    @id
-  visionati_api_key   String
+  userId      Int?
 }
 
 model ShopVisionatiSettings {
@@ -32,6 +27,7 @@ model ShopVisionatiSettings {
   backend             String?
   role                String?
   custom_prompt       String?
+  credits             Int?
 }
 
 model ShopAutoImageDescriptions {

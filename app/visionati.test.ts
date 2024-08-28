@@ -6,6 +6,7 @@ const given = describe;
 const apiKey = crypto.randomUUID()
 const settings: VisionatiSettings = {
   apiKey,
+  shopId: 'my-shop.shopify.com',
   role: DEFAULT_ROLE,
   backend: DEFAULT_BACKEND,
 }
@@ -161,6 +162,14 @@ describe("getVisionatiImageDescriptions", () => {
     })
 
     given("Batch request succeeds", () => {
+      let updateCreditsMock: any;
+      let credits = 100;
+
+      beforeEach(() => {
+        updateCreditsMock = jest.spyOn(db.shopVisionatiSettings, 'update')
+        jest.spyOn(global, 'fetch').mockResolvedValueOnce(Response.json(visionatiResp))
+      })
+
       const url1 = "http://someurl.com/img.png"
       const url2 = "http://anotherurl.com/cat.jpg"
 
@@ -170,6 +179,7 @@ describe("getVisionatiImageDescriptions", () => {
       }
 
       const visionatiResp = {
+        credits,
         all: {
           assets: [
             {
@@ -184,14 +194,33 @@ describe("getVisionatiImageDescriptions", () => {
         }
       }
 
-      beforeEach(() => {
-        jest.spyOn(global, 'fetch').mockResolvedValueOnce(Response.json(visionatiResp))
+      afterEach(() => {
+        let args = updateCreditsMock.mock.calls[0][0]
+        expect(args.data.credits).toBe(credits)
+        expect(args.where.shop_id).toBe(settings.shopId)
       })
 
-      test("Descriptions are returned for each URL", async () => {
-        await expect(getVisionatiImageDescriptions(settings, imageURLs)).resolves.toEqual(exp)
+      given("DB call to log credits fails", () => {
+        let errMsg = "failed to log remaining visionati credits"
+        beforeEach(() => {
+          updateCreditsMock.mockRejectedValueOnce(new Error(errMsg))
+        })
+
+        test("Error is thrown", async () => {
+          await expect(getVisionatiImageDescriptions(settings, imageURLs)).rejects.toThrowError(errMsg)
+        })
       })
 
+      given("DB call to log credits succeeds", () => {
+        beforeEach(() => {
+          updateCreditsMock.mockResolvedValueOnce({})
+        })
+
+        test("Descriptions are returned for each URL", async () => {
+          await expect(getVisionatiImageDescriptions(settings, imageURLs)).resolves.toEqual(exp)
+        })
+
+      })
     })
   })
 

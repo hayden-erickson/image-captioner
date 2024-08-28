@@ -61,6 +61,7 @@ type VisionatiResponse = {
   error?: string;
   status?: string;
   urls: [string] | [];
+  credits: number;
   all?: {
     assets: [VisionatiAsset]
   }
@@ -68,6 +69,7 @@ type VisionatiResponse = {
 
 export type VisionatiSettings = {
   apiKey: string;
+  shopId: string;
   role?: VisionatiRole | null;
   backend?: VisionatiBackend | null;
   customPrompt?: string;
@@ -99,6 +101,7 @@ export async function visionatiClient(shopId: string): Promise<GetImageDescripti
 
   return async function(imageURLs: string[]): Promise<URLDescriptionIdx> {
     return getVisionatiImageDescriptions({
+      shopId,
       apiKey: settings.api_key,
       role: settings.role as VisionatiRole,
       backend: settings.backend as VisionatiBackend,
@@ -116,8 +119,6 @@ export async function getVisionatiImageDescriptions(settings: VisionatiSettings,
     ...(settings.customPrompt ? { prompt: settings.customPrompt } : null),
     url: imageURLs
   }
-
-  console.log(vReq)
 
   const visionatiResp = await fetch('https://api.visionati.com/api/fetch', {
     method: "POST",
@@ -140,7 +141,7 @@ export async function getVisionatiImageDescriptions(settings: VisionatiSettings,
     }))
   }
 
-  let resp: VisionatiResponse = { urls: [], status: "processing" }
+  let resp: VisionatiResponse = { urls: [], status: "processing", credits: 0 }
 
   // Poll the visionati batch API for a response
   while (resp.status === "processing") {
@@ -163,6 +164,14 @@ export async function getVisionatiImageDescriptions(settings: VisionatiSettings,
     await sleep(1000) // sleep for 1 s
   }
 
+  await db.shopVisionatiSettings.update({
+    data: {
+      credits: resp.credits,
+    },
+    where: {
+      shop_id: settings.shopId,
+    }
+  })
 
   // Only get the first description returned from visionati.
   // TODO This may change in the future!
