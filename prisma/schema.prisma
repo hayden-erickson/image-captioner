@@ -36,6 +36,14 @@ model ShopVisionatiSettings {
   credits             Int?
 }
 
+model ShopVisionatiSettings {
+  shop_id             String    @id
+  api_key             String
+  backend             String?
+  role                String?
+  custom_prompt       String?
+}
+
 model ShopAutoImageDescriptions {
   shop_id String    @id
 }

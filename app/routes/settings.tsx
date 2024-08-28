@@ -1,12 +1,11 @@
 import CaptionAllProducts from './settings.caption_all_products.($bulk_update_request_id)'
-import VisionatiApiToken from './settings.visionati_api_token'
+import VisionatiSettings from './settings.visionati'
 import ShopAutoImageDescriptions from './settings.shop_auto_image_descriptions'
 import Products from './settings.products'
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { useRouteError } from "@remix-run/react";
 import {
   Card,
-  BlockStack,
   Text,
 } from "@shopify/polaris";
 
@@ -23,7 +22,7 @@ export default function Settings() {
         Visionati
       </Text>
       <Card>
-        <VisionatiApiToken />
+        <VisionatiSettings />
       </Card>
 
       <Text as="h1" variant="headingLg">
