@@ -1,18 +1,16 @@
 import db from "./db.server";
-import { URLDescriptionIdx, visionatiClient } from "./visionati"
+import { URLDescriptionIdx, visionatiClient } from "./visionati.server"
 import {
   Product,
   GetProductsFn,
   CreateProductDescriptionUpdateLogArgs,
-  //CreateProductDescriptionsLogFn,
-  ProductConnection,
   ProductPageFn,
   ProductPageIteratorFn,
   forEachProductPage,
   getProductsClient,
   ProductFilterFn,
-} from "./shopify"
-import { GetImageDescriptionsFn } from './visionati'
+} from "./shopify.server"
+import { GetImageDescriptionsFn } from './visionati.server'
 
 export type CreateProductDescriptionsLogFn = (page: Product[], newDescs: URLDescriptionIdx) => Promise<void>
 

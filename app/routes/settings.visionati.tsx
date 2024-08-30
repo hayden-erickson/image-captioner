@@ -25,7 +25,15 @@ import {
 import db from "../db.server";
 
 import { authenticate } from "../shopify.server";
-import { VisionatiBackend, VisionatiRole, DEFAULT_ROLE, DEFAULT_BACKEND } from "../visionati";
+import {
+  visionatiDescriptionBackends,
+  VisionatiDescriptionBackend,
+  VisionatiBackend,
+  VisionatiRole,
+  visionatiRoles,
+  DEFAULT_ROLE,
+  DEFAULT_BACKEND
+} from "../visionati";
 
 // TODO this isn't working when calling `useLoaderData`
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -87,17 +95,8 @@ function SelectBackend({
   backend,
   onBackendChange,
 }: SelectBackendProps) {
-  const options = [
-    { label: "Clarifai", value: "clarifai" },
-    { label: "Imagga", value: "imagga" },
-    { label: "Google Vision", value: "googlevision" },
-    { label: "Rekognition", value: "rekognition" },
-    { label: "Llava", value: "llava" },
-    { label: "Bakllava", value: "bakllava" },
-    { label: "Jinaai", value: "jinaai" },
-    { label: "Gemini", value: "gemini" },
-    { label: "OpenAI", value: "openai" },
-  ];
+  const options = visionatiDescriptionBackends
+    .map((v: VisionatiDescriptionBackend) => ({ label: v, value: v }))
 
   return (
     <Select
@@ -119,19 +118,9 @@ function SelectRole({
   role,
   onRoleChange,
 }: SelectRoleProps) {
-  const options = [
-    { label: "Artist", value: "artist" },
-    { label: "Caption", value: "caption" },
-    { label: "Comedian", value: "comedian" },
-    { label: "Critic", value: "critic" },
-    { label: "General", value: "general" },
-    { label: "Ecommerce", value: "ecommerce" },
-    { label: "Inspector", value: "inspector" },
-    { label: "Promoter", value: "promoter" },
-    { label: "Prompt", value: "prompt" },
-    { label: "Realtor", value: "realtor" },
-    { label: "Tweet", value: "tweet" },
-  ];
+  const options = visionatiRoles.map(
+    (r: VisionatiRole) => ({ label: r, value: r })
+  )
 
   return (
     <Select
