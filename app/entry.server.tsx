@@ -16,7 +16,6 @@ export default async function handleRequest(
   responseHeaders: Headers,
   remixContext: EntryContext
 ) {
-  console.log("server request entry");
   addDocumentResponseHeaders(request, responseHeaders);
 
   const callbackName = isbot(request.headers.get("user-agent"))

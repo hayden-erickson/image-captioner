@@ -1,9 +1,9 @@
 import { jest, describe, expect, beforeEach, afterEach, test } from "@jest/globals";
-import { ShopifyClient, productCreateHandler } from "./pubsub";
-import * as v from "./visionati";
+import { ShopifyClient, productCreateHandler } from "./pubsub.server";
+import * as v from "./visionati.server";
 import type { Message } from "@google-cloud/pubsub";
 import db from "./db.server";
-import { Product } from "./shopify";
+import { Product } from "./shopify.server";
 const given = describe;
 
 

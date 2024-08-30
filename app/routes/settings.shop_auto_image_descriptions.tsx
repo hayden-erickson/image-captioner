@@ -160,11 +160,11 @@ export default function ShopAutoImageDescriptions() {
   const [fetcherAlreadyLoaded, setFetcherAlreadyLoaded] = useState(false)
   const [checked, setChecked] = useState(false)
 
-  const toggleShopAutoImageDescriptions = async (enabled: boolean) => {
+  const toggleShopAutoImageDescriptions = (enabled: boolean) => {
     const method = enabled ? "POST" : "DELETE"
     const verb = enabled ? "Enabled" : "Disabled"
 
-    await fetcher.submit({}, { method, action: "/settings/shop_auto_image_descriptions" });
+    fetcher.submit({}, { method, action: "/settings/shop_auto_image_descriptions" });
     setChecked(enabled)
     shopify.toast.show(`${verb} automatic image descriptions`);
   }

@@ -1,14 +1,27 @@
 import db from "./db.server";
 
-export type VisionatiBackend = "clarifai"
-  | "imagga"
-  | "googlevision"
-  | "rekognition"
-  | "llava"
+export type VisionatiDescriptionBackend = "llava"
   | "bakllava"
   | "jinaai"
   | "gemini"
+  | "claude"
   | "openai"
+
+export const visionatiDescriptionBackends: VisionatiDescriptionBackend[] = [
+  "llava", "bakllava", "jinaai", "gemini", "claude", "openai"
+]
+
+export type VisionatiTaggingBackend = "clarifai"
+  | "googlevision"
+  | "imagga"
+  | "rekognition"
+
+export const visionatiTaggingBackends: VisionatiTaggingBackend[] = [
+  "clarifai", "googlevision", "imagga", "rekognition"
+]
+
+export type VisionatiBackend = VisionatiDescriptionBackend | VisionatiTaggingBackend
+
 
 type VisionatiFeature = "brands"
   | "colors"
@@ -29,6 +42,20 @@ export type VisionatiRole = "artist"
   | "prompt"
   | "realtor"
   | "tweet"
+
+export const visionatiRoles: VisionatiRole[] = [
+  "artist",
+  "caption",
+  "comedian",
+  "critic",
+  "general",
+  "ecommerce",
+  "inspector",
+  "promoter",
+  "prompt",
+  "realtor",
+  "tweet"
+]
 
 export const DEFAULT_ROLE: VisionatiRole = "ecommerce"
 export const DEFAULT_BACKEND: VisionatiBackend = "gemini"

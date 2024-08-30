@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   IndexTable,
@@ -33,7 +33,8 @@ import {
   getAIProductDescriptions,
   getProductsClient,
   filterAllProducts,
-  ProductWithAIAnnotation
+  ProductWithAIAnnotation,
+  updateProduct
 } from "../shopify"
 
 import {
@@ -172,6 +173,27 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<TypedResp
 
   let bulkOperation: BulkUpdateProductsFn;
 
+  if (data?.action === 'approve') {
+    await Promise.all(data?.products.map(
+      (p: ProductWithAIAnnotation) => updateProduct(admin, p.id, p.aiDescription || '')
+    ))
+
+    return json({
+      nodes: data?.products?.map((p: ProductWithAIAnnotation) => ({
+        ...p,
+        // Now that the product AI description is approved set the product
+        // description to the AI description.
+        description: p.aiDescription,
+      })),
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: '',
+        endCursor: '',
+      }
+    });
+  }
+
   if (data?.allProductsSelected) {
     bulkOperation = logAllProductDescriptionUpdates(admin, session.shop)
   } else {
@@ -244,7 +266,7 @@ export default function Products() {
       fetcher.load(`/settings/products?q=${queryValue}`)
     }, 500)
 
-    setDebounceTimeoutID(timeoutID)
+    setDebounceTimeoutID((timeoutID as unknown) as number)
   }, [queryValue])
 
 
@@ -335,6 +357,7 @@ export default function Products() {
       onAction: () => {
         fetcher.submit({
           products: selectedProducts,
+          action: 'generate',
           ...(allProductsSelected ? { allProductsSelected } : null)
         }, {
           method: "POST",
@@ -349,6 +372,17 @@ export default function Products() {
     promotedBulkActions.push({
       content: 'Review AI Descriptions',
       onAction: () => setReviewInProgressWithURL(true),
+    }, {
+      content: 'Approve All AI Descriptions',
+      onAction: () =>
+        fetcher.submit({
+          products: productsPendingAIDescription,
+          action: 'approve',
+        }, {
+          method: "POST",
+          action: "/settings/products",
+          encType: "application/json",
+        })
     })
   }
 

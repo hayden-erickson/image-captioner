@@ -1,7 +1,7 @@
 import { LATEST_API_VERSION } from "@shopify/shopify-app-remix/server";
 import type { Message } from "@google-cloud/pubsub";
 import db from "./db.server";
-import { VisionatiBackend, VisionatiRole, VisionatiSettings, visionatiClient } from "./visionati";
+import { visionatiClient } from "./visionati.server";
 
 type ShopifyProduct = {
   id: string;

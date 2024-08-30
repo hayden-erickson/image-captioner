@@ -4,14 +4,14 @@ import {
   ProductConnection,
   ProductFilterFn,
   ProductPageFn,
-} from "./shopify"
+} from "./shopify.server"
 import {
   createProductDescriptionUpdateLogs,
   bulkProductUpdate,
   logProductDescriptionUpdatesClient,
   filterProductsHaveAIDescriptions,
 } from "./bulk_product_operations"
-import * as v from "./visionati";
+import * as v from "./visionati.server";
 import db from "./db.server";
 
 const given = describe;

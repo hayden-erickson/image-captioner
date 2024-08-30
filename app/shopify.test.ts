@@ -4,7 +4,7 @@ import {
   ProductConnection,
   forEachProductPage,
   GetProductsFn,
-} from "./shopify"
+} from "./shopify.server"
 
 const given = describe
 
