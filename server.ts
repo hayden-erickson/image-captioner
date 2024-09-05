@@ -5,6 +5,8 @@ import express from "express";
 import morgan from "morgan";
 import { Server } from "socket.io";
 import socketHandler from './app/socket/index'
+import { PubSub } from '@google-cloud/pubsub';
+import { webhookMessageHandler } from './app/pubsub.server'
 
 const viteDevServer =
   process.env.NODE_ENV === "production"
@@ -63,4 +65,10 @@ const port = process.env.PORT || 3000;
 // instead of running listen on the Express app, do it on the HTTP server
 httpServer.listen(port, '0.0.0.0', () => {
   console.log(`Express server listening at http://localhost:${port}`);
+
+  console.log(`creating subscription to ${process.env.GOOGLE_PUBSUB_SUBSCRIPTION}`)
+  const pubSubClient = new PubSub();
+  const subscription = pubSubClient.subscription(process.env.GOOGLE_PUBSUB_SUBSCRIPTION || "");
+  subscription.on('message', webhookMessageHandler);
+
 });
