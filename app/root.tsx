@@ -1,13 +1,13 @@
+import React from 'react'
 import {
   Links,
-  LiveReload,
   Meta,
-  Outlet,
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
+import App from './routes/app'
 
-export default function App() {
+export default function() {
   return (
     <html>
       <head>
@@ -17,9 +17,8 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <Outlet />
+        <App />
         <ScrollRestoration />
-        <LiveReload port={8002} />
         <Scripts />
       </body>
     </html>

@@ -1,111 +1,16 @@
 import db from "./db.server";
-
-export type VisionatiDescriptionBackend = "llava"
-  | "bakllava"
-  | "jinaai"
-  | "gemini"
-  | "claude"
-  | "openai"
-
-export const visionatiDescriptionBackends: VisionatiDescriptionBackend[] = [
-  "llava", "bakllava", "jinaai", "gemini", "claude", "openai"
-]
-
-export type VisionatiTaggingBackend = "clarifai"
-  | "googlevision"
-  | "imagga"
-  | "rekognition"
-
-export const visionatiTaggingBackends: VisionatiTaggingBackend[] = [
-  "clarifai", "googlevision", "imagga", "rekognition"
-]
-
-export type VisionatiBackend = VisionatiDescriptionBackend | VisionatiTaggingBackend
-
-
-type VisionatiFeature = "brands"
-  | "colors"
-  | "descriptions"
-  | "faces"
-  | "nsfw"
-  | "tags"
-  | "texts"
-
-export type VisionatiRole = "artist"
-  | "caption"
-  | "comedian"
-  | "critic"
-  | "general"
-  | "ecommerce"
-  | "inspector"
-  | "promoter"
-  | "prompt"
-  | "realtor"
-  | "tweet"
-
-export const visionatiRoles: VisionatiRole[] = [
-  "artist",
-  "caption",
-  "comedian",
-  "critic",
-  "general",
-  "ecommerce",
-  "inspector",
-  "promoter",
-  "prompt",
-  "realtor",
-  "tweet"
-]
-
-export const DEFAULT_ROLE: VisionatiRole = "ecommerce"
-export const DEFAULT_BACKEND: VisionatiBackend = "gemini"
-const DEFAULT_FEATURES: [VisionatiFeature] = ['descriptions']
-
-type VisionatiDescription = {
-  description: string;
-  source: string;
-}
-
-type VisionatiAsset = {
-  name: string;
-  descriptions?: [VisionatiDescription]
-}
-
-type VisionatiReq = {
-  backend: [VisionatiBackend] | VisionatiBackend;
-  url: string[];
-  role: VisionatiRole;
-  feature: [VisionatiFeature] | VisionatiFeature;
-  prompt?: string;
-}
-
-type VisionatiBatchResp = {
-  success?: Boolean;
-  error?: string;
-  response_uri: string;
-}
-type VisionatiResponse = {
-  error?: string;
-  status?: string;
-  urls: [string] | [];
-  credits: number;
-  all?: {
-    assets: [VisionatiAsset]
-  }
-}
-
-export type VisionatiSettings = {
-  apiKey: string;
-  shopId: string;
-  role?: VisionatiRole | null;
-  backend?: VisionatiBackend | null;
-  customPrompt?: string;
-}
-
-
-export type URLDescriptionIdx = {
-  [key: string]: string;
-}
+import {
+  VisionatiBackend,
+  VisionatiRole,
+  VisionatiSettings,
+  VisionatiReq,
+  VisionatiResponse,
+  VisionatiBatchResp,
+  URLDescriptionIdx,
+  DEFAULT_FEATURES,
+  DEFAULT_ROLE,
+  DEFAULT_BACKEND,
+} from './visionati.types'
 
 export type GetImageDescriptionsFn = (imageUrls: string[]) => Promise<URLDescriptionIdx>
 

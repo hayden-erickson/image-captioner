@@ -1,10 +1,13 @@
 import { jest, describe, expect, beforeEach, afterEach, test } from "@jest/globals";
 import {
-  Product,
-  ProductConnection,
   forEachProductPage,
   GetProductsFn,
 } from "./shopify.server"
+
+import {
+  Product,
+  ProductConnection,
+} from "./shopify.types"
 
 const given = describe
 

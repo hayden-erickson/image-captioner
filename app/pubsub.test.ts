@@ -3,7 +3,7 @@ import { ShopifyClient, productCreateHandler } from "./pubsub.server";
 import * as v from "./visionati.server";
 import type { Message } from "@google-cloud/pubsub";
 import db from "./db.server";
-import { Product } from "./shopify.server";
+import { Product } from "./shopify.types";
 const given = describe;
 
 

@@ -1,23 +1,3 @@
-import type {
-  LoaderFunctionArgs,
-  ActionFunctionArgs,
-  TypedResponse,
-} from "@remix-run/node";
-
-import { json } from "@remix-run/node";
-
-import { authenticate } from "../shopify.server";
-
-import {
-  getProduct,
-  getAIProductDescriptions,
-  updateProduct,
-} from '../shopify.server'
-
-import {
-  ProductWithAIAnnotation,
-} from '../shopify.types'
-
 import {
   useState,
   useEffect,
@@ -46,31 +26,10 @@ import {
   useFetcher,
 } from '@remix-run/react'
 
-export const action = async ({ request }: ActionFunctionArgs): Promise<TypedResponse<ProductWithAIAnnotation>> => {
-  const { admin } = await authenticate.admin(request);
-  const { product } = await request.json()
+import {
+  ProductWithAIAnnotation,
+} from '../shopify.types'
 
-  await updateProduct(admin, product.id, product.aiDescription)
-
-  return json(product)
-}
-
-export const loader = async ({ request }: LoaderFunctionArgs): Promise<TypedResponse<ProductWithAIAnnotation>> => {
-  const { admin } = await authenticate.admin(request);
-  const url = new URL(request.url);
-  const productId = url.searchParams.get("product") || "";
-  if (!productId) {
-    return json({} as ProductWithAIAnnotation)
-  }
-
-  const product = await getProduct(admin, productId)
-  const aiDescriptions = await getAIProductDescriptions(productId, 1)
-
-  return json({
-    ...product,
-    aiDescription: aiDescriptions?.length > 0 ? aiDescriptions[0].new_description : '',
-  })
-}
 
 type ProductReviewProps = {
   productId: string;

@@ -1,16 +1,24 @@
 import db from "./db.server";
-import { URLDescriptionIdx, visionatiClient } from "./visionati.server"
+import { visionatiClient } from "./visionati.server"
+import { URLDescriptionIdx } from "./visionati.types"
 import {
-  Product,
   GetProductsFn,
-  CreateProductDescriptionUpdateLogArgs,
   ProductPageFn,
   ProductPageIteratorFn,
   forEachProductPage,
   getProductsClient,
   ProductFilterFn,
 } from "./shopify.server"
+
+import { Product } from "./shopify.types"
 import { GetImageDescriptionsFn } from './visionati.server'
+
+type CreateProductDescriptionUpdateLogArgs = {
+  nodes: Product[];
+  descriptions: { [key: string]: string };
+  productCatalogBulkUpdateRequestId: string;
+  shopId: string;
+}
 
 export type CreateProductDescriptionsLogFn = (page: Product[], newDescs: URLDescriptionIdx) => Promise<void>
 

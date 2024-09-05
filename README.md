@@ -6,11 +6,22 @@ Rather than cloning this repo, you can use your preferred package manager and th
 
 Visit the [`shopify.dev` documentation](https://shopify.dev/docs/api/shopify-app-remix) for more details on the Remix app package.
 
+## Change Notes
+- modified the code to use a custom express server instead of remix server so
+  that we can use websockets for real time data subscriptions.
+- Downgraded node version from v22.2.0 to v20.17.1 so that the
+  shopify-app-remix package works properly.
+- Created a custom `./app/components` folder for frontend components so that
+  frontend components don't import any server code.
+
 ## Quick start
 
 ### Prerequisites
 
 1. You must [download and install Node.js](https://nodejs.org/en/download/) if you don't already have it.
+  - Note: you can not yet use the latest version of node v22.2.0 b/c the
+    shopify-app-remix packge does not work with it. You need to use <v22. I'm
+    currently using v20.17.0
 2. You must [create a Shopify partner account](https://partners.shopify.com/signup) if you don’t have one.
 3. You must create a store for testing if you don't have one, either a [development store](https://help.shopify.com/en/partners/dashboard/development-stores#create-a-development-store) or a [Shopify Plus sandbox store](https://help.shopify.com/en/partners/dashboard/managing-stores/plus-sandbox-store).
 

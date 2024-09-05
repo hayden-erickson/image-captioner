@@ -1,4 +1,3 @@
-import CaptionAllProducts from './settings.caption_all_products.($bulk_update_request_id)'
 import VisionatiSettings from './settings.visionati'
 import ShopAutoImageDescriptions from './settings.shop_auto_image_descriptions'
 import Products from './settings.products'
@@ -12,8 +11,6 @@ import {
 export function ErrorBoundary() {
   return boundary.error(useRouteError());
 }
-
-//<CaptionAllProducts />
 
 export default function Settings() {
   return (

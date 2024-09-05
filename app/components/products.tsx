@@ -1,37 +1,3 @@
-import type {
-  ActionFunctionArgs,
-  LoaderFunctionArgs,
-  TypedResponse
-} from "@remix-run/node";
-
-import { URLSearchParams } from 'url';
-
-import { json } from "@remix-run/node";
-
-import { authenticate } from "../shopify.server";
-
-import {
-  GetProductsFn,
-  getAIProductDescriptions,
-  getProductsClient,
-  filterAllProducts,
-  updateProduct
-} from "../shopify.server"
-
-import {
-  Product,
-  ProductConnectionWithAIAnnotation,
-  ProductWithAIAnnotation,
-} from "../shopify.types"
-
-import {
-  BulkUpdateProductsFn,
-  bulkProductUpdate,
-  logAllProductDescriptionUpdates,
-  logProductDescriptionUpdates,
-  filterProductsHaveAIDescriptions
-} from "../bulk_product_operations.server"
-
 import { useEffect, useState } from 'react';
 
 import {
@@ -50,8 +16,16 @@ import {
   useSearchParams,
 } from '@remix-run/react'
 
-import ProductReview from './settings.products.review'
 
+import {
+  Product,
+  ProductConnectionWithAIAnnotation,
+  ProductWithAIAnnotation,
+} from "../shopify.types"
+
+import ProductReview from './products.review'
+
+import { URLSearchParams } from 'url';
 
 export type TabFilterKey =
   'all_products' |
@@ -73,154 +47,6 @@ const tabFilters: TabFilter[] = [
 
 const strippedEqual = (a: string, b: string): boolean =>
   a.replace(/\s/g, '') === b.replace(/\s/g, '')
-
-async function loaderWithFilter(filterName: TabFilterKey, getShopifyProducts: GetProductsFn): Promise<TypedResponse<ProductConnectionWithAIAnnotation>> {
-  const hasAIDescription = filterName === 'products_ai_descriptions'
-    || filterName === 'products_pending_ai_descriptions'
-
-  const filteredNodes = await filterAllProducts({
-    getShopifyProducts,
-    filter: filterProductsHaveAIDescriptions(hasAIDescription)
-  })
-
-  let nodes = await Promise.all(
-    filteredNodes.map(
-      async (p: Product): Promise<ProductWithAIAnnotation> => {
-        let aiDescription = ''
-        if (hasAIDescription) {
-          let descUpdateRow = await getAIProductDescriptions(p.id, 1)
-          aiDescription = descUpdateRow[0].new_description
-        }
-
-        return {
-          ...p,
-          ...(hasAIDescription ? { aiDescription } : undefined),
-        }
-      }
-    )
-  )
-
-  nodes = nodes.filter((p: ProductWithAIAnnotation) => {
-
-    if (filterName === 'products_pending_ai_descriptions') {
-      return !strippedEqual(p.description, p.aiDescription || '')
-    }
-
-    if (filterName === 'products_ai_descriptions') {
-      return strippedEqual(p.description, p.aiDescription || '')
-    }
-
-    return true
-  })
-
-  return json({
-    nodes,
-    pageInfo: {
-      hasNextPage: false,
-      hasPreviousPage: false,
-      startCursor: '',
-      endCursor: '',
-    },
-  })
-}
-
-// loader will return a list of shopify products
-export const loader = async ({ request }: LoaderFunctionArgs): Promise<TypedResponse<ProductConnectionWithAIAnnotation>> => {
-  const { admin } = await authenticate.admin(request);
-
-  const url = new URL(request.url);
-  const filter = url.searchParams.get("filter") as TabFilterKey;
-  const getProducts = getProductsClient(admin)
-
-  if (filter && filter !== 'all_products') {
-    return loaderWithFilter(filter, getProducts)
-  }
-
-  const query = url.searchParams.get("q");
-  const after = url.searchParams.get("after");
-  const before = url.searchParams.get("before");
-
-  const products = await getProducts({
-    query,
-    after,
-    before,
-    first: !before ? 10 : undefined,
-    last: before ? 10 : undefined,
-  })
-
-
-
-  const nodes: ProductWithAIAnnotation[] = await Promise.all(products.nodes.map(async (p: Product) => {
-    const aiDescs = await getAIProductDescriptions(p.id, 1)
-
-    return {
-      ...p,
-      aiDescription: aiDescs?.length > 0 ? aiDescs[0].new_description : '',
-    }
-  }
-  ))
-
-
-  return json({
-    nodes,
-    pageInfo: products.pageInfo,
-  })
-}
-
-// Action will take in a list of shopify products to be described by visionati.
-export const action = async ({ request }: ActionFunctionArgs): Promise<TypedResponse<ProductConnectionWithAIAnnotation>> => {
-  const { admin, session } = await authenticate.admin(request)
-  const productCatalogBulkUpdateRequestId = crypto.randomUUID()
-  const data = await request.json()
-
-  let bulkOperation: BulkUpdateProductsFn;
-
-  if (data?.action === 'approve') {
-    await Promise.all(data?.products.map(
-      (p: ProductWithAIAnnotation) => updateProduct(admin, p.id, p.aiDescription || '')
-    ))
-
-    return json({
-      nodes: data?.products?.map((p: ProductWithAIAnnotation) => ({
-        ...p,
-        // Now that the product AI description is approved set the product
-        // description to the AI description.
-        description: p.aiDescription,
-      })),
-      pageInfo: {
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: '',
-        endCursor: '',
-      }
-    });
-  }
-
-  if (data?.allProductsSelected) {
-    bulkOperation = logAllProductDescriptionUpdates(admin, session.shop)
-  } else {
-    bulkOperation = logProductDescriptionUpdates(session.shop, data.products)
-  }
-
-  await bulkProductUpdate(
-    productCatalogBulkUpdateRequestId,
-    session.shop,
-    bulkOperation,
-  )
-
-  return json({
-    nodes: data?.products?.map((p: ProductWithAIAnnotation) => ({
-      ...p,
-      aiDescription: 'AI Description Pending. Refresh the page and check back in shortly.',
-    })),
-    pageInfo: {
-      hasNextPage: false,
-      hasPreviousPage: false,
-      startCursor: '',
-      endCursor: '',
-    }
-  });
-}
 
 export default function Products() {
   const fetcher = useFetcher<ProductConnectionWithAIAnnotation>();

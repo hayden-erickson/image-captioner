@@ -1,16 +1,21 @@
 import { jest, describe, expect, beforeEach, afterEach, test } from "@jest/globals";
 import {
-  Product,
-  ProductConnection,
   ProductFilterFn,
   ProductPageFn,
 } from "./shopify.server"
+import {
+  Product,
+} from "./shopify.types"
+
 import {
   createProductDescriptionUpdateLogs,
   bulkProductUpdate,
   logProductDescriptionUpdatesClient,
   filterProductsHaveAIDescriptions,
-} from "./bulk_product_operations"
+} from "./bulk_product_operations.server"
+import {
+  URLDescriptionIdx
+} from './visionati.types'
 import * as v from "./visionati.server";
 import db from "./db.server";
 
@@ -28,7 +33,7 @@ const genFakeProducts = (n: number) => [...new Array(n)].map((x: undefined, i: n
 
 describe("createProductDescriptionUpdateLogs", () => {
   let nodes: Product[];
-  let descriptions: v.URLDescriptionIdx;
+  let descriptions: URLDescriptionIdx;
   let productCatalogBulkUpdateRequestId: string;
   let shopId: string;
 

@@ -1,30 +1,35 @@
-import { useState, useEffect } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  TypedResponse,
+} from "@remix-run/node";
 import { json } from "@remix-run/node";
 import db from "../db.server";
-import {
-  useFetcher,
-} from '@remix-run/react'
 
+import { authenticate } from "../shopify.server";
+import { OptionalShopId } from "../shopify.types"
 import {
   BlockStack,
   Checkbox,
   Text,
 } from "@shopify/polaris";
+import { useRoutedFetcher } from "~/fetcher";
 
-import { authenticate } from "../shopify.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+export async function loader({ request }: LoaderFunctionArgs):
+  Promise<TypedResponse<OptionalShopId | null>> {
   const { session } = await authenticate.admin(request);
 
-  const shopAutoImageDescription = await db.shopAutoImageDescriptions.findUnique(
+  const enabled = await db.shopAutoImageDescriptions.findUnique(
     {
       where: {
         shop_id: session.shop,
       },
     })
 
-  return json(shopAutoImageDescription)
+  return json(enabled ? {
+    shopId: enabled.shop_id,
+  } : null)
 
 };
 
@@ -121,9 +126,8 @@ async function createWebhookSubscriptions(admin: any, topic: string) {
 }
 
 // Note the "action" export name, this will handle our form POST
-export const action = async ({
-  request,
-}: ActionFunctionArgs) => {
+export async function action({ request, }: ActionFunctionArgs):
+  Promise<TypedResponse<OptionalShopId | null>> {
   const { admin, session } = await authenticate.admin(request);
 
   if (request.method === "DELETE") {
@@ -139,7 +143,7 @@ export const action = async ({
 
   await createWebhookSubscriptions(admin, "PRODUCTS_CREATE")
 
-  const shopAutoImageDescriptions = await db.shopAutoImageDescriptions.upsert({
+  const enabled = await db.shopAutoImageDescriptions.upsert({
     where: {
       shop_id: session.shop,
     },
@@ -151,50 +155,26 @@ export const action = async ({
     },
   })
 
-  return json(shopAutoImageDescriptions)
+  return json(enabled ? {
+    shopId: enabled.shop_id,
+  } : null)
 }
-
 export default function ShopAutoImageDescriptions() {
-  const fetcher = useFetcher<typeof loader>();
-  const isLoading = fetcher.state !== "idle"
-  const [fetcherAlreadyLoaded, setFetcherAlreadyLoaded] = useState(false)
-  const [checked, setChecked] = useState(false)
+  const {
+    data,
+    isLoading,
+    submit,
+  } = useRoutedFetcher<OptionalShopId | null>("/settings/shop_auto_image_descriptions");
+
+  const checked = isLoading ? false : Boolean(data?.shopId)
 
   const toggleShopAutoImageDescriptions = (enabled: boolean) => {
     const method = enabled ? "POST" : "DELETE"
     const verb = enabled ? "Enabled" : "Disabled"
 
-    fetcher.submit({}, { method, action: "/settings/shop_auto_image_descriptions" });
-    setChecked(enabled)
+    submit({}, method);
     shopify.toast.show(`${verb} automatic image descriptions`);
   }
-
-  useEffect(() => {
-    if (isLoading) {
-      return
-    }
-
-    // we're not loading
-    if (fetcher.data) {
-      setChecked(!!fetcher?.data?.shop_id)
-      return
-    }
-
-    // there is no fetcher data
-    if (fetcherAlreadyLoaded) {
-      return
-    }
-
-    // the fetcher has not yet loaded
-    const loadData = () => {
-      fetcher.load("/settings/shop_auto_image_descriptions")
-      // If automatic image descriptions are disabled we set loaded to true so
-      // that this effect doesn't loop forever.
-      setFetcherAlreadyLoaded(true)
-    }
-
-    loadData()
-  }, [fetcher, isLoading, fetcherAlreadyLoaded]);
 
   return (
     <BlockStack gap='200'>

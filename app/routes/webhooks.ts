@@ -9,14 +9,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   );
 
   // if (!admin) {
-    // The admin context isn't returned if the webhook fired after a shop was uninstalled.
-    // throw new Response();
+  // The admin context isn't returned if the webhook fired after a shop was uninstalled.
+  // throw new Response();
   // }
 
   console.log(topic)
 
   switch (topic) {
-    case "APP_UNINSTALLED":
+    case "SHOP_REDACT":
       if (session) {
         await db.session.deleteMany({ where: { shop } });
       }
@@ -24,15 +24,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       break;
     case "CUSTOMERS_DATA_REQUEST":
     case "CUSTOMERS_REDACT":
-    case "SHOP_REDACT":
-    case "PRODUCTS_CREATE":
-      console.log(request)
-      break
-
-    case "PRODUCTS_UPDATE":
-      // TODO if we update a product after a product update webhook will it
-      // re-trigger a product update webhook and infinite loop?
-      break
     default:
       throw new Response("Unhandled webhook topic", { status: 404 });
   }

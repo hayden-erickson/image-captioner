@@ -10,10 +10,12 @@ import {
 import {
   visionatiClient,
   getVisionatiImageDescriptions,
+} from './visionati.server'
+import {
   VisionatiSettings,
   DEFAULT_ROLE,
   DEFAULT_BACKEND
-} from "./visionati.server";
+} from "./visionati.types";
 const given = describe;
 
 const apiKey = crypto.randomUUID()

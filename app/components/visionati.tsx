@@ -1,13 +1,3 @@
-import type {
-  ActionFunctionArgs,
-  LoaderFunctionArgs,
-  TypedResponse,
-} from "@remix-run/node";
-
-import { json } from "@remix-run/node";
-import db from "../db.server";
-
-import { authenticate } from "../shopify.server";
 import { useState, useEffect } from "react";
 import {
   useFetcher,
@@ -40,69 +30,6 @@ import {
   DEFAULT_BACKEND,
   VisionatiSettings
 } from "../visionati.types";
-
-
-export const loader = async ({ request }: LoaderFunctionArgs): Promise<TypedResponse<VisionatiSettings | null>> => {
-  const { session } = await authenticate.admin(request);
-
-  const settings = await db.shopVisionatiSettings.findUnique(
-    {
-      where: {
-        shop_id: session.shop,
-      },
-    })
-
-  return json(settings ? {
-    apiKey: settings.api_key,
-    shopId: settings.shop_id,
-    role: (settings.role || '') as VisionatiRole,
-    backend: (settings.backend || '') as VisionatiBackend,
-    customPrompt: settings.custom_prompt || '',
-  } : null)
-
-};
-
-// Note the "action" export name, this will handle our form POST
-export const action = async ({
-  request,
-}: ActionFunctionArgs): Promise<TypedResponse<VisionatiSettings>> => {
-  const { session } = await authenticate.admin(request);
-
-  const {
-    apiKey,
-    backend,
-    role,
-    customPrompt,
-  } = await request.json()
-
-  const settings = await db.shopVisionatiSettings.upsert(
-    {
-      where: {
-        shop_id: session.shop,
-      },
-      update: {
-        api_key: apiKey,
-        backend,
-        role,
-        custom_prompt: customPrompt,
-      },
-      create: {
-        shop_id: session.shop,
-        api_key: apiKey,
-        backend,
-        role,
-        custom_prompt: customPrompt,
-      },
-    })
-
-  return json({
-    apiKey: settings.api_key,
-    shopId: settings.shop_id,
-    role: (settings.role || '') as VisionatiRole,
-    backend: (settings.backend || '') as VisionatiBackend,
-    customPrompt: settings.custom_prompt || '',
-  })
-}
 
 type SelectBackendProps = {
   backend: VisionatiBackend;
