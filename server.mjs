@@ -6,6 +6,17 @@ import express from "express";
 import morgan from "morgan";
 import { Server } from "socket.io";
 import dotenv from 'dotenv'
+//import { PubSub } from '@google-cloud/pubsub';
+//import { webhookMessageHandler } from './app/pubsub.server'
+
+import { installGlobals } from "@remix-run/node";
+
+//const pubSubClient = new PubSub();
+//const subscription = pubSubClient.subscription(process.env.GOOGLE_PUBSUB_SUBSCRIPTION || "");
+//subscription.on('message', webhookMessageHandler);
+
+
+installGlobals();
 
 // Load the environment variables from the .env file
 dotenv.config()
@@ -18,12 +29,6 @@ const viteDevServer =
         server: { middlewareMode: true },
       }),
     );
-
-const remixHandler = createRequestHandler({
-  build: viteDevServer
-    ? () => viteDevServer.ssrLoadModule("virtual:remix/server-build")
-    : await import("./build/server/index.js"),
-});
 
 const app = express();
 
@@ -68,6 +73,12 @@ if (viteDevServer) {
 app.use(express.static("build/client", { maxAge: "1h" }));
 
 app.use(morgan("tiny"));
+
+const remixHandler = createRequestHandler({
+  build: viteDevServer
+    ? () => viteDevServer.ssrLoadModule("virtual:remix/server-build")
+    : await import("./build/server/index.js"),
+});
 
 // handle SSR requests
 app.all("*", remixHandler);

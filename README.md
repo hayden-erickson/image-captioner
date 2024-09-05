@@ -6,6 +6,14 @@ Rather than cloning this repo, you can use your preferred package manager and th
 
 Visit the [`shopify.dev` documentation](https://shopify.dev/docs/api/shopify-app-remix) for more details on the Remix app package.
 
+## Change Notes
+- modified the code to use a custom express server instead of remix server so
+  that we can use websockets for real time data subscriptions.
+- Downgraded node version from v22.2.0 to v20.17.1 so that the
+  shopify-app-remix package works properly.
+- Created a custom `./app/components` folder for frontend components so that
+  frontend components don't import any server code.
+
 ## Quick start
 
 ### Prerequisites

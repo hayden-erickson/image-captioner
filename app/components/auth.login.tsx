@@ -1,9 +1,4 @@
-import { useState } from 'react'
-import { useRoutedFetcher } from '~/fetcher';
-import { LoginErrorResp } from './types';
-import type { ActionFunctionArgs, LoaderFunctionArgs, TypedResponse } from "@remix-run/node";
-import { json } from "@remix-run/node";
-import { Form } from "@remix-run/react";
+import { useState } from "react";
 import {
   AppProvider as PolarisAppProvider,
   Button,
@@ -13,28 +8,9 @@ import {
   Text,
   TextField,
 } from "@shopify/polaris";
-import polarisTranslations from "@shopify/polaris/locales/en.json";
-import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
-
-import { login } from "../../shopify.server";
-
-import { loginErrorMessage } from "./error.server";
-
-export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
-
-export async function loader({ request }: LoaderFunctionArgs): Promise<TypedResponse<LoginErrorResp>> {
-  const errors = loginErrorMessage(await login(request));
-
-  return json({ errors, polarisTranslations });
-};
-
-export async function action({ request }: ActionFunctionArgs): Promise<TypedResponse<LoginErrorResp>> {
-  const errors = loginErrorMessage(await login(request));
-
-  return json({
-    errors,
-  });
-};
+import { Form } from "@remix-run/react";
+import { LoginErrorResp } from '../routes/auth.login/types'
+import { useRoutedFetcher } from "~/fetcher";
 
 export default function Auth() {
   const { data, isLoading } = useRoutedFetcher<LoginErrorResp>("/auth/login")

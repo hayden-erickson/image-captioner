@@ -7,6 +7,10 @@ import {
 } from "./shopify.types"
 
 import {
+  Product,
+} from "./shopify.types"
+
+import {
   createProductDescriptionUpdateLogs,
   bulkProductUpdate,
   logProductDescriptionUpdatesClient,

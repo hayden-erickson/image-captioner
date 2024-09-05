@@ -1,12 +1,13 @@
+import React from 'react'
 import {
   Links,
   Meta,
-  Outlet,
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
+import App from './routes/app'
 
-export default function App() {
+export default function() {
   return (
     <html>
       <head>
@@ -21,7 +22,7 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <Outlet />
+        <App />
         <ScrollRestoration />
         <Scripts />
       </body>

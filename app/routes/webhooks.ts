@@ -16,7 +16,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // The topics handled here should be declared in the shopify.app.toml.
   // More info: https://shopify.dev/docs/apps/build/cli-for-apps/app-configuration
   switch (topic) {
-    case "APP_UNINSTALLED":
+    case "SHOP_REDACT":
       if (session) {
         await db.session.deleteMany({ where: { shop } });
       }
