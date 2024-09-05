@@ -93,8 +93,8 @@ export type VisionatiResponse = {
 }
 
 export type VisionatiSettings = {
-  apiKey: string;
   shopId: string;
+  apiKey: string;
   role?: VisionatiRole | null;
   backend?: VisionatiBackend | null;
   customPrompt?: string;

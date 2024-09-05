@@ -2,7 +2,8 @@
 
 client_id = "a556031e8a54b39c2ccb91895fd1045b"
 name = "image-captioner"
-application_url = "https://f28c-2605-59c8-30dc-ae10-d86d-8c00-de4b-8373.ngrok-free.app"
+handle = "image-captioner"
+application_url = "https://integration-wrong-overnight-undertaken.trycloudflare.com"
 embedded = true
 
 [build]
@@ -15,13 +16,17 @@ scopes = "read_product_listings,read_products,write_products"
 
 [auth]
 redirect_urls = [
-  "https://f28c-2605-59c8-30dc-ae10-d86d-8c00-de4b-8373.ngrok-free.app/auth/callback",
-  "https://f28c-2605-59c8-30dc-ae10-d86d-8c00-de4b-8373.ngrok-free.app/auth/shopify/callback",
-  "https://f28c-2605-59c8-30dc-ae10-d86d-8c00-de4b-8373.ngrok-free.app/api/auth/callback"
+  "https://integration-wrong-overnight-undertaken.trycloudflare.com/auth/callback",
+  "https://integration-wrong-overnight-undertaken.trycloudflare.com/auth/shopify/callback",
+  "https://integration-wrong-overnight-undertaken.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
 api_version = "2024-04"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks"
 
 [pos]
 embedded = false

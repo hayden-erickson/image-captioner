@@ -1,18 +1,46 @@
+import { LATEST_API_VERSION } from "@shopify/shopify-app-remix/server";
 import "@shopify/shopify-app-remix/adapters/node";
 import {
+  ApiVersion,
   AppDistribution,
-  DeliveryMethod,
   shopifyApp,
-  LATEST_API_VERSION,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
-//import { restResources } from "@shopify/shopify-app-remix/server"
-
+import { restResources } from "@shopify/shopify-api/rest/admin/2024-07";
 import prisma from "./db.server";
+import "@shopify/shopify-app-remix/server/adapters/node";
 import {
   Product,
   ProductConnection,
 } from './shopify.types'
+
+const shopify = shopifyApp({
+  apiKey: process.env.SHOPIFY_API_KEY,
+  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
+  apiVersion: ApiVersion.July24,
+  scopes: process.env.SCOPES?.split(","),
+  appUrl: process.env.SHOPIFY_APP_URL || "",
+  authPathPrefix: "/auth",
+  sessionStorage: new PrismaSessionStorage(prisma),
+  distribution: AppDistribution.AppStore,
+  restResources,
+  future: {
+    unstable_newEmbeddedAuthStrategy: true,
+  },
+  ...(process.env.SHOP_CUSTOM_DOMAIN
+    ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
+    : {}),
+});
+
+export default shopify;
+export const apiVersion = ApiVersion.July24;
+export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
+export const authenticate = shopify.authenticate;
+export const unauthenticated = shopify.unauthenticated;
+export const login = shopify.login;
+export const registerWebhooks = shopify.registerWebhooks;
+export const sessionStorage = shopify.sessionStorage;
+
 
 type GetProductsArgs = {
   query?: string | undefined | null;
@@ -36,9 +64,34 @@ export type GetProductsFn = ({ first, after, last, before }: GetProductsArgs) =>
 export type ProductPageFn = (page: Product[]) => Promise<void>;
 export type ProductPageIteratorFn = (args: ForEachProductPageArgs) => Promise<void>;
 export type ProductFilterFn = (page: Product[]) => Promise<Product[]>
+export type GQLFn = (query: string, variables: any) => Promise<any>
 
-export async function getProduct(admin: any, id: string): Promise<Product> {
-  const response = await admin.graphql(`#graphql
+export function shopifyClient(shopDomain: string, accessToken: string): GQLFn {
+  const sd = `https://${shopDomain}/admin/api/${LATEST_API_VERSION}/graphql.json`;
+
+  return async function(query: string, { variables }: any) {
+    const resp = await fetch(sd, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": accessToken,
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+    });
+
+    if (!resp.ok) {
+      throw new Error(resp.statusText)
+    }
+
+    return resp
+  }
+}
+
+export async function getProduct(gql: GQLFn, id: string): Promise<Product> {
+  const response = await gql(`#graphql
     query GetProduct($id:ID!) {
       product(id: $id) {
         id
@@ -62,9 +115,9 @@ export async function getProduct(admin: any, id: string): Promise<Product> {
 }
 
 
-export function getProductsClient(admin: any): GetProductsFn {
+export function getProductsClient(gql: GQLFn): GetProductsFn {
   return async function({ query, first, after, last, before }: GetProductsArgs): Promise<ProductConnection> {
-    const response = await admin.graphql(
+    const response = await gql(
       `#graphql
     query GetProducts($query: String, $first: Int, $after: String, $last: Int, $before: String) {
       products(query: $query, first: $first, after: $after, last: $last, before: $before) {
@@ -72,9 +125,6 @@ export function getProductsClient(admin: any): GetProductsFn {
           id
           title
           description
-          variants(first: 10) {
-            nodes { id }
-          }
           featuredImage {
             url
           }
@@ -98,18 +148,20 @@ export function getProductsClient(admin: any): GetProductsFn {
       });
 
 
-    let {
-      data: {
-        products
-      },
-    } = await response.json();
+    const body = await response.json()
 
-    return products
+    if (body?.errors?.length > 0) {
+      console.log(body)
+      const allMsgs = body.errors.map((e: any) => e.message).join('\n')
+      throw new Error(allMsgs)
+    }
+
+    return body?.data?.products
   }
 }
 
 export async function getAIProductDescriptions(product_id: string, limit?: number) {
-  return await db.shopProductDescriptionUpdates.findMany({
+  return await prisma.shopProductDescriptionUpdates.findMany({
     where: { product_id },
     orderBy: {
       created_at: 'desc',
@@ -123,8 +175,8 @@ export async function productHasAIDescription(product_id: string): Promise<boole
   return descs?.length > 0
 }
 
-export async function updateProduct(admin: any, id: string, descriptionHtml: string) {
-  await admin.graphql(
+export async function updateProduct(gql: GQLFn, id: string, descriptionHtml: string) {
+  await gql(
     `#graphql
           mutation updateProduct($input: ProductInput!) {
             productUpdate(input: $input) {
@@ -169,6 +221,10 @@ export async function forEachProductPage({
       after
     })
 
+    if (!p) {
+      break
+    }
+
     after = p.pageInfo.endCursor;
     hasNextPage = p.pageInfo.hasNextPage;
 
@@ -198,68 +254,4 @@ export async function filterAllProducts({
 
   return out
 }
-
-const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
-  apiVersion: LATEST_API_VERSION,
-  scopes: process.env.SCOPES?.split(","),
-  appUrl: process.env.SHOPIFY_APP_URL || "",
-  authPathPrefix: "/auth",
-  sessionStorage: new PrismaSessionStorage(prisma),
-  distribution: AppDistribution.AppStore,
-
-  // TODO see if this is needed
-  //restResources,
-
-  // Guide on how to setup shopify webhooks with remix.
-  // https://shopify.dev/docs/api/shopify-app-remix/v1/guide-webhooks#config
-  // Shopify webhooks overview
-  // https://shopify.dev/docs/apps/webhooks
-  // Shopify CLI webhook trigger
-  // https://shopify.dev/docs/apps/tools/cli/commands#webhook-trigger
-  // This object tells shopify which webhooks to send to our app and where to send them.
-  webhooks: {
-    // Complete list of available webhook topics.
-    // https://shopify.dev/docs/api/admin-rest/2024-01/resources/webhook
-    APP_UNINSTALLED: {
-      deliveryMethod: DeliveryMethod.Http,
-      callbackUrl: "/webhooks",
-    },
-    // Details on how to configure google cloud pub/sub webhooks.
-    // https://shopify.dev/docs/apps/webhooks/configuration/google-cloud
-    PRODUCTS_CREATE: {
-      deliveryMethod: DeliveryMethod.PubSub,
-      pubSubProject: "image-captioner-408123",
-      pubSubTopic: "shopify-webhooks",
-    },
-    PRODUCTS_UPDATE: {
-      deliveryMethod: DeliveryMethod.PubSub,
-      pubSubProject: "image-captioner-408123",
-      pubSubTopic: "shopify-webhooks",
-    },
-  },
-  hooks: {
-    afterAuth: async ({ session }) => {
-      shopify.registerWebhooks({ session });
-    },
-  },
-  future: {
-    v3_webhookAdminContext: true,
-    v3_authenticatePublic: true,
-  },
-  ...(process.env.SHOP_CUSTOM_DOMAIN
-    ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
-    : {}),
-});
-
-export default shopify;
-export const apiVersion = LATEST_API_VERSION;
-export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
-export const authenticate = shopify.authenticate;
-export const unauthenticated = shopify.unauthenticated;
-export const login = shopify.login;
-export const registerWebhooks = shopify.registerWebhooks;
-export const sessionStorage = shopify.sessionStorage;
-import db from "./db.server";
 

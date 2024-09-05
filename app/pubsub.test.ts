@@ -1,166 +1,12 @@
 import { jest, describe, expect, beforeEach, afterEach, test } from "@jest/globals";
-import { ShopifyClient, productCreateHandler } from "./pubsub.server";
+import { productCreateHandler } from "./pubsub.server";
 import * as v from "./visionati.server";
 import type { Message } from "@google-cloud/pubsub";
 import db from "./db.server";
 import { Product } from "./shopify.types";
+import * as shopify from './shopify.server'
 const given = describe;
 
-
-describe("ShopifyClient", () => {
-  let fSpy: any;
-  let client: ShopifyClient;
-  let shopDomain = "myshop.shopify.com"
-  let accessToken = crypto.randomUUID()
-
-  beforeEach(() => {
-    client = new ShopifyClient(shopDomain, accessToken)
-  })
-
-  afterEach(() => {
-    jest.clearAllMocks()
-  })
-
-  describe("graphql", () => {
-    given("API call fails", () => {
-      let errMsg = "failed to call shopify API"
-      beforeEach(() => {
-        fSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error(errMsg))
-      })
-
-      afterEach(() => {
-        const req = fSpy.mock.calls[0][1]
-        expect(JSON.parse(req.body)).toStrictEqual({ query: "query", variables: "vars" })
-        expect(req.headers).toHaveProperty("X-Shopify-Access-Token", accessToken)
-      })
-
-      test("Error is thrown", async () => {
-        await expect(() => client.graphql("query", "vars")).rejects.toThrowError(errMsg)
-      })
-
-    })
-
-    given("API call succeeds", () => {
-      const exp = { some: "cool object" }
-
-      beforeEach(() => {
-        fSpy = jest.spyOn(global, 'fetch').mockResolvedValue(Response.json(exp))
-      })
-
-      test("it works", async () => {
-        const resp = await client.graphql("query", "vars")
-        expect(resp.ok).toBeTruthy()
-        const received = await resp.json()
-        expect(received).toEqual(exp)
-      })
-    })
-  })
-
-  describe("getProduct", () => {
-    let productId = crypto.randomUUID()
-
-    afterEach(() => {
-      const receivedBody = JSON.parse(fSpy.mock.calls[0][1].body)
-      expect(receivedBody).toHaveProperty('variables', { productId })
-    })
-
-    given("API call fails", () => {
-      let errMsg = "failed to call shopify API"
-      beforeEach(() => {
-        fSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error(errMsg))
-      })
-
-      test("Error is thrown", async () => {
-        await expect(() => client.getProduct(productId)).rejects.toThrowError(errMsg)
-      })
-
-    })
-
-    given("Response is not ok", () => {
-      beforeEach(() => {
-        fSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce(Response.error())
-      })
-
-      test("Error is thrown", async () => {
-        await expect(() => client.getProduct(productId)).rejects.toThrow()
-      })
-    })
-
-    given("Response json is invalid", () => {
-      beforeEach(() => {
-        fSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce(Response.json({ some: 'invalid product type' }))
-      })
-
-      test("Error is thrown", async () => {
-        await expect(() => client.getProduct(productId)).rejects.toThrow()
-      })
-    })
-
-    given("Response is valid", () => {
-      let product = {
-        id: crypto.randomUUID(),
-        description: "product description",
-        featuredImage: {
-          url: "some.com/img.png"
-        }
-      }
-
-      beforeEach(() => {
-        fSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce(Response.json({ data: { product } }))
-      })
-
-      test("Product is returned", async () => {
-        const received = await client.getProduct(productId)
-        expect(received).toEqual(product)
-      })
-    })
-
-  })
-
-
-  describe("updateProduct", () => {
-    let id = crypto.randomUUID();
-    let descriptionHtml = "a new fancy description!";
-
-    given("API call fails", () => {
-      let errMsg = "failed to call shopify API"
-      beforeEach(() => {
-        fSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error(errMsg))
-      })
-
-      test("Error is thrown", async () => {
-        await expect(() => client.updateProduct({ id, descriptionHtml })).rejects.toThrowError(errMsg)
-      })
-
-    })
-
-    given("Response is not ok", () => {
-      beforeEach(() => {
-        fSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce(Response.error())
-      })
-
-      test("Error is thrown", async () => {
-        await expect(() => client.updateProduct({ id, descriptionHtml })).rejects.toThrow()
-      })
-    })
-
-    given("Response is valid", () => {
-      beforeEach(() => {
-        fSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce(Response.json({}))
-      })
-
-      afterEach(() => {
-        const received = JSON.parse(fSpy.mock.calls[0][1].body)
-        expect(received).toHaveProperty('variables.input', { id, descriptionHtml })
-      })
-
-      test("Product is returned", async () => {
-        await client.updateProduct({ id, descriptionHtml })
-      })
-    })
-
-  })
-})
 
 describe("productCreateHandler", () => {
   let msg: Message;
@@ -183,9 +29,6 @@ describe("productCreateHandler", () => {
     test("Error is thrown", async () => {
       await expect(() => productCreateHandler(msg)).rejects.toThrowError("not valid JSON")
     })
-  })
-
-  given("given no admin graphql ID", () => {
   })
 
   given("DB call fails", () => {
@@ -285,21 +128,26 @@ describe("productCreateHandler", () => {
         })
       })
 
-      given("Shop has Visionati API token", () => {
-        let fetch: any;
+      given("Shop has Visionati settings", () => {
         let visionati: any;
+        let client: any;
+        let getProductMock: any;
 
         beforeEach(() => {
-          visionati = jest.fn()
-          vSpy.mockResolvedValue(visionati as v.GetImageDescriptionsFn)
-          fetch = jest.spyOn(global, 'fetch')
+          client = jest.spyOn(shopify, 'shopifyClient')
+          getProductMock = jest.spyOn(shopify, 'getProduct')
+        })
+
+        afterEach(() => {
+          expect(client.mock.calls[0][0]).toBe(shopDomain)
+          expect(client.mock.calls[0][1]).toBe(accessToken)
         })
 
         given("Get shopify product API call fails", () => {
           let errMsg = "failed to get shopify product"
 
           beforeEach(() => {
-            fetch.mockRejectedValueOnce(new Error(errMsg))
+            getProductMock.mockRejectedValueOnce(new Error(errMsg))
           })
 
           test("Error is thrown", async () => {
@@ -311,7 +159,9 @@ describe("productCreateHandler", () => {
           let product: Product;
 
           beforeEach(() => {
-            fetch.mockResolvedValueOnce(Response.json({ data: { product } }))
+            getProductMock.mockResolvedValueOnce(Response.json({ data: { product } }))
+            visionati = jest.fn()
+            vSpy.mockResolvedValueOnce(visionati as v.GetImageDescriptionsFn)
           })
 
           afterEach(() => {
@@ -336,7 +186,7 @@ describe("productCreateHandler", () => {
               description: "slime ball baby!",
               featuredImage: { url }
             }
-            fetch.mockResolvedValueOnce(Response.json({ data: { product } }))
+            getProductMock.mockResolvedValueOnce(product)
           })
 
           given("Visionati API call fails", () => {
@@ -344,6 +194,7 @@ describe("productCreateHandler", () => {
 
             beforeEach(() => {
               visionati.mockRejectedValue(new Error(errMsg))
+              vSpy.mockResolvedValueOnce(visionati as v.GetImageDescriptionsFn)
             })
 
             test("Error is thrown", async () => {
@@ -354,15 +205,19 @@ describe("productCreateHandler", () => {
 
           given("Visionati API call succeeds", () => {
             let newDesc = "some new description that's very very shiny!"
+            let updateProductMock: any;
+            beforeEach(() => {
+              updateProductMock = jest.spyOn(shopify, 'updateProduct')
+            })
 
             given("Visionati returns no descriptions", () => {
               beforeEach(() => {
                 visionati.mockResolvedValueOnce(undefined)
+                vSpy.mockResolvedValueOnce(visionati as v.GetImageDescriptionsFn)
               })
 
               afterEach(() => {
                 expect(visionati.mock.calls[0][0]).toEqual([url])
-                expect(fetch.mock.calls).toHaveLength(1)
               })
 
               test("Function terminates", async () => {
@@ -374,7 +229,8 @@ describe("productCreateHandler", () => {
               let errMsg = "Failed to update product description"
               beforeEach(() => {
                 visionati.mockResolvedValueOnce({ [url]: newDesc })
-                fetch.mockRejectedValueOnce(new Error(errMsg))
+                vSpy.mockResolvedValueOnce(visionati as v.GetImageDescriptionsFn)
+                updateProductMock.mockRejectedValueOnce(new Error(errMsg))
               })
 
               test("Error is thrown", async () => {
@@ -386,14 +242,16 @@ describe("productCreateHandler", () => {
               let webhook: any;
               beforeEach(() => {
                 visionati.mockResolvedValueOnce({ [url]: newDesc })
-                fetch.mockResolvedValueOnce(Response.json({}))
+                vSpy.mockResolvedValueOnce(visionati as v.GetImageDescriptionsFn)
+                updateProductMock.mockResolvedValueOnce(Response.json({}))
                 webhook = jest.spyOn(db.shopWebhookRequests, 'create')
               })
 
               afterEach(() => {
-                const body = JSON.parse(fetch.mock.calls[1][1].body)
-                const received = body.variables.input
-                expect(received).toEqual({ id: product.id, descriptionHtml: newDesc })
+                const receivedId = updateProductMock.mock.calls[0][1]
+                const receivedDesc = updateProductMock.mock.calls[0][2]
+                expect(receivedId).toEqual(product.id)
+                expect(receivedDesc).toEqual(newDesc)
               })
 
               given("Webhook DB create call fails", () => {

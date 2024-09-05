@@ -8,10 +8,12 @@ import {
   forEachProductPage,
   getProductsClient,
   ProductFilterFn,
+  GQLFn,
 } from "./shopify.server"
 
 import { Product } from "./shopify.types"
 import { GetImageDescriptionsFn } from './visionati.server'
+
 
 type CreateProductDescriptionUpdateLogArgs = {
   nodes: Product[];
@@ -48,7 +50,11 @@ type logProductDescriptionUpdatesClientArgs = {
 
 
 // Create Product Description Update Logs
-export async function createProductDescriptionUpdateLogs({ nodes, descriptions, productCatalogBulkUpdateRequestId, shopId }: CreateProductDescriptionUpdateLogArgs) {
+export async function createProductDescriptionUpdateLogs({ nodes,
+  descriptions,
+  productCatalogBulkUpdateRequestId,
+  shopId,
+}: CreateProductDescriptionUpdateLogArgs) {
   for (let i = 0; i < nodes?.length; i++) {
     let desc = descriptions ? descriptions[nodes[i]?.featuredImage?.url] : ""
 
@@ -98,22 +104,15 @@ export function logProductDescriptionUpdatesClient({
   }
 }
 
-export function annotateProductsWithAIDescriptions(): ProductPageFn {
-  return async function(p: Product[]): Promise<void> {
-    const productIds = p
-      .map((n: Product) => n?.id)
-      .filter((u: string | null) => !!u)
-
-    console.log(productIds)
-  }
-}
-
 export type BulkUpdateProductsFn = (bulkUpdateRequestId: string) => Promise<void>
 
-export function logAllProductDescriptionUpdates(admin: any, shopId: string): BulkUpdateProductsFn {
+export function logAllProductDescriptionUpdates(
+  gql: GQLFn,
+  shopId: string,
+): BulkUpdateProductsFn {
   return async function(prid: string) {
     const getImageDescriptions: GetImageDescriptionsFn = await visionatiClient(shopId)
-    const getShopifyProducts: GetProductsFn = getProductsClient(admin)
+    const getShopifyProducts: GetProductsFn = getProductsClient(gql)
     const createLogs: CreateProductDescriptionsLogFn =
       (nodes: Product[], descriptions: URLDescriptionIdx): Promise<void> =>
         createProductDescriptionUpdateLogs({
@@ -134,13 +133,16 @@ export function logAllProductDescriptionUpdates(admin: any, shopId: string): Bul
   }
 }
 
-export function logProductDescriptionUpdates(shopId: string, nodes: Product[]): BulkUpdateProductsFn {
+export function logProductDescriptionUpdates(
+  shopId: string,
+  nodes: Product[],
+): BulkUpdateProductsFn {
   return async function(prid: string) {
     const getImageDescriptions: GetImageDescriptionsFn = await visionatiClient(shopId)
 
     const descriptions = await getImageDescriptions(nodes.map((p: Product) => p?.featuredImage?.url))
 
-    createProductDescriptionUpdateLogs({
+    await createProductDescriptionUpdateLogs({
       nodes,
       descriptions,
       productCatalogBulkUpdateRequestId: prid,

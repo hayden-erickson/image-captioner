@@ -1,5 +1,3 @@
-import { loginErrorMessage } from "./error.server";
-
 export interface LoginErrorMessage {
   shop?: string;
 }

@@ -21,23 +21,25 @@ async function sleep(ms: number) {
 }
 
 export async function visionatiClient(shopId: string): Promise<GetImageDescriptionsFn> {
+  const apiKey = process.env.VISIONATI_API_KEY
+
+  if (!apiKey) {
+    throw new Error("no visionati api key provided")
+  }
+
   const settings = await db.shopVisionatiSettings.findUnique({
     where: {
       shop_id: shopId,
     },
   })
 
-  if (!settings || !settings?.api_key) {
-    throw new Error("shop has no visionati api key")
-  }
-
   return async function(imageURLs: string[]): Promise<URLDescriptionIdx> {
     return getVisionatiImageDescriptions({
       shopId,
-      apiKey: settings.api_key,
-      role: settings.role as VisionatiRole,
-      backend: settings.backend as VisionatiBackend,
-      customPrompt: settings.custom_prompt || undefined,
+      apiKey,
+      role: settings?.role as VisionatiRole,
+      backend: settings?.backend as VisionatiBackend,
+      customPrompt: settings?.custom_prompt || undefined,
     }, imageURLs)
   }
 }

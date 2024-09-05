@@ -2,6 +2,10 @@ import { jest, describe, expect, beforeEach, afterEach, test } from "@jest/globa
 import {
   forEachProductPage,
   GetProductsFn,
+  shopifyClient,
+  getProduct,
+  updateProduct,
+  GQLFn,
 } from "./shopify.server"
 
 import {
@@ -19,6 +23,155 @@ const genFakeProducts = (n: number) => [...new Array(n)].map((x: undefined, i: n
     url: `image-${i}.com/img.png`,
   }
 }))
+
+describe("ShopifyClient", () => {
+  let fSpy: any;
+  let gql: GQLFn;
+  let shopDomain = "myshop.shopify.com"
+  let accessToken = crypto.randomUUID()
+
+  beforeEach(() => {
+    gql = shopifyClient(shopDomain, accessToken)
+  })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  describe("graphql", () => {
+    given("API call fails", () => {
+      let errMsg = "failed to call shopify API"
+      beforeEach(() => {
+        fSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error(errMsg))
+      })
+
+      afterEach(() => {
+        const req = fSpy.mock.calls[0][1]
+        expect(JSON.parse(req.body)).toStrictEqual({ query: "query", variables: "vars" })
+        expect(req.headers).toHaveProperty("X-Shopify-Access-Token", accessToken)
+      })
+
+      test("Error is thrown", async () => {
+        await expect(() => gql("query", { variables: "vars" })).rejects.toThrowError(errMsg)
+      })
+    })
+
+    given("Response is not ok", () => {
+      beforeEach(() => {
+        fSpy = jest.spyOn(global, 'fetch').mockResolvedValue(Response.error())
+      })
+
+
+      test("Error is thrown", async () => {
+        await expect(() => gql("query", { variables: "vars" })).rejects.toThrow()
+      })
+
+    })
+
+    given("API call succeeds", () => {
+      const exp = { some: "cool object" }
+
+      beforeEach(() => {
+        fSpy = jest.spyOn(global, 'fetch').mockResolvedValue(Response.json(exp))
+      })
+
+      test("it works", async () => {
+        const resp = await gql("query", { variables: "vars" })
+        expect(resp.ok).toBeTruthy()
+        const received = await resp.json()
+        expect(received).toEqual(exp)
+      })
+    })
+  })
+
+})
+
+describe("getProduct", () => {
+  let productId = crypto.randomUUID()
+  let gql: ReturnType<typeof jest.fn>;
+
+  beforeEach(() => {
+    gql = jest.fn()
+  })
+
+  afterEach(() => {
+    const { variables: { id } } = gql.mock.calls[0][1]
+    expect(id).toEqual(productId)
+  })
+
+  given("API call fails", () => {
+    let errMsg = "failed to call shopify API"
+    beforeEach(() => {
+      gql.mockRejectedValue(new Error(errMsg))
+    })
+
+    test("Error is thrown", async () => {
+      await expect(() => getProduct(gql, productId)).rejects.toThrowError(errMsg)
+    })
+
+  })
+
+  given("API call succeeds", () => {
+    let product = {
+      id: crypto.randomUUID(),
+      description: "product description",
+      featuredImage: {
+        url: "some.com/img.png"
+      }
+    }
+
+    beforeEach(() => {
+      gql.mockResolvedValueOnce(Response.json({ data: { product } }))
+    })
+
+    test("Product is returned", async () => {
+      const received = await getProduct(gql, productId)
+      expect(received).toEqual(product)
+    })
+  })
+
+})
+
+
+describe("updateProduct", () => {
+  let id = crypto.randomUUID();
+  let descriptionHtml = "a new fancy description!";
+  let gql: ReturnType<typeof jest.fn>;
+
+  beforeEach(() => {
+    gql = jest.fn()
+  })
+
+  given("API call fails", () => {
+    let errMsg = "failed to call shopify API"
+    beforeEach(() => {
+      gql.mockRejectedValue(new Error(errMsg))
+    })
+
+    test("Error is thrown", async () => {
+      await expect(() => updateProduct(gql, id, descriptionHtml)).rejects.toThrowError(errMsg)
+    })
+
+  })
+
+  given("Response is valid", () => {
+    beforeEach(() => {
+      gql.mockResolvedValueOnce(Response.json({}))
+    })
+
+    afterEach(() => {
+      const { variables: { input: { descriptionHtml: receivedDesc, id } } } = gql.mock.calls[0][1]
+      expect(id).toEqual(id)
+      expect(receivedDesc).toEqual(descriptionHtml)
+    })
+
+    test("Product is returned", async () => {
+      await updateProduct(gql, id, descriptionHtml)
+    })
+  })
+
+})
+
 
 describe("forEachProductPage", () => {
   let getShopifyProducts: ReturnType<typeof jest.fn>

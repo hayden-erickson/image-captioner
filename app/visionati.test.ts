@@ -7,6 +7,7 @@ import {
   afterEach,
   test
 } from "@jest/globals";
+const given = describe;
 import {
   visionatiClient,
   getVisionatiImageDescriptions,
@@ -16,7 +17,6 @@ import {
   DEFAULT_ROLE,
   DEFAULT_BACKEND
 } from "./visionati.types";
-const given = describe;
 
 const apiKey = crypto.randomUUID()
 const settings: VisionatiSettings = {
@@ -54,27 +54,7 @@ describe("visionatiClient", () => {
     })
   })
 
-  given("Shop has no visionati API key", () => {
-    beforeEach(() => {
-      svakMock.mockResolvedValueOnce({
-        shop_id: '',
-        visionati_api_key: '',
-      })
-    })
-
-    test("Error is thrown", async () => {
-      await expect(() => visionatiClient(shopId)).rejects.toThrowError("shop has no visionati api key")
-    })
-  })
-
   given("Shop has visionati API key", () => {
-    beforeEach(() => {
-      svakMock.mockResolvedValueOnce({
-        shop_id: shopId,
-        visionati_api_key: crypto.randomUUID(),
-      })
-    })
-
     test("Client function is returned", async () => {
       expect(() => visionatiClient(shopId)).not.toBeNull()
     })
