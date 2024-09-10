@@ -183,7 +183,7 @@ export default function ShopAutoImageDescriptions() {
         checked={checked}
         onChange={toggleShopAutoImageDescriptions} />
       <Text as='p' tone='subdued'>
-        Use Visionati to automatically generate image descriptions when new products are created.
+        Automatically generate image descriptions when new products are created.
       </Text>
     </BlockStack>
   )

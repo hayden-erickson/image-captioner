@@ -1,5 +1,18 @@
+import { wrap } from "module";
 import db from "./db.server";
 import {
+  artistPrompt,
+  criticPrompt,
+  comedianPrompt,
+  ecommercePrompt,
+  inspectorPrompt,
+  promoterPrompt,
+  realtorPrompt,
+  tweetPrompt,
+  captionPrompt,
+  promptPrompt,
+  promptBoilerplate,
+  GetImageDescriptionsFn,
   VisionatiBackend,
   VisionatiRole,
   VisionatiSettings,
@@ -11,8 +24,6 @@ import {
   DEFAULT_ROLE,
   DEFAULT_BACKEND,
 } from './visionati.types'
-
-export type GetImageDescriptionsFn = (imageUrls: string[]) => Promise<URLDescriptionIdx>
 
 async function sleep(ms: number) {
   return new Promise((resolve) => {
@@ -44,13 +55,53 @@ export async function visionatiClient(shopId: string): Promise<GetImageDescripti
   }
 }
 
+function roleToPrompt(role: VisionatiRole): string {
+  switch (role) {
+    case 'artist':
+      return artistPrompt
+    case 'critic':
+      return criticPrompt
+    case 'comedian':
+      return comedianPrompt
+    case 'ecommerce':
+      return ecommercePrompt
+    case 'inspector':
+      return inspectorPrompt
+    case 'promoter':
+      return promoterPrompt
+    case 'realtor':
+      return realtorPrompt
+    case 'tweet':
+      return tweetPrompt
+    case 'caption':
+      return captionPrompt
+    case 'prompt':
+      return promptPrompt
+    default:
+      return ''
+  }
+}
+
+function wrapPromptWithBoilerplate(prompt: string): string {
+  return `${prompt}
+  ${promptBoilerplate}`
+}
+
+export function createPrompt(settings: VisionatiSettings): string {
+  if (settings.customPrompt) {
+    return wrapPromptWithBoilerplate(settings.customPrompt)
+  }
+
+  return wrapPromptWithBoilerplate(
+    roleToPrompt(settings.role || DEFAULT_ROLE))
+}
+
 
 export async function getVisionatiImageDescriptions(settings: VisionatiSettings, imageURLs: string[]): Promise<URLDescriptionIdx> {
   const vReq: VisionatiReq = {
     feature: DEFAULT_FEATURES,
-    role: settings.role || DEFAULT_ROLE,
     backend: settings.backend || DEFAULT_BACKEND,
-    ...(settings.customPrompt ? { prompt: settings.customPrompt } : null),
+    prompt: createPrompt(settings),
     url: imageURLs
   }
 

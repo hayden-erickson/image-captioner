@@ -1,19 +1,20 @@
 import db from "./db.server";
 import { visionatiClient } from "./visionati.server"
-import { URLDescriptionIdx } from "./visionati.types"
+import { URLDescriptionIdx, GetImageDescriptionsFn } from "./visionati.types"
+import {
+  forEachProductPage,
+  getProductsClient,
+} from "./shopify.server"
+
 import {
   GetProductsFn,
   ProductPageFn,
   ProductPageIteratorFn,
-  forEachProductPage,
-  getProductsClient,
   ProductFilterFn,
   GQLFn,
-} from "./shopify.server"
-
-import { Product } from "./shopify.types"
-import { GetImageDescriptionsFn } from './visionati.server'
-
+  Product,
+} from "./shopify.types"
+import { Count } from "@prisma/client/runtime/react-native.js";
 
 type CreateProductDescriptionUpdateLogArgs = {
   nodes: Product[];
@@ -205,4 +206,29 @@ export function filterProductsHaveAIDescriptions(hasAIDescription: boolean): Pro
 
     return page.filter(cond)
   }
+}
+
+export type CountShopDescriptionsArgs = {
+  shopId: string;
+  thisMonth?: boolean;
+}
+
+export async function countShopDescriptions({ shopId, thisMonth }: CountShopDescriptionsArgs): Promise<number> {
+  let whereThisMonth = null
+
+  if (thisMonth) {
+    let now = new Date()
+    whereThisMonth = {
+      created_at: {
+        gte: new Date(now.getFullYear(), now.getMonth(), 1)
+      }
+    }
+  }
+
+  return await db.shopProductDescriptionUpdates.count({
+    where: {
+      shop_id: shopId,
+      ...whereThisMonth
+    }
+  })
 }

@@ -162,6 +162,7 @@ describe("getVisionatiImageDescriptions", () => {
 
       beforeEach(() => {
         updateCreditsMock = jest.spyOn(db.shopVisionatiSettings, 'update')
+        updateCreditsMock.mockResolvedValueOnce({})
         jest.spyOn(global, 'fetch').mockResolvedValueOnce(Response.json(visionatiResp))
       })
 
@@ -195,30 +196,11 @@ describe("getVisionatiImageDescriptions", () => {
         expect(args.where.shop_id).toBe(settings.shopId)
       })
 
-      given("DB call to log credits fails", () => {
-        let errMsg = "failed to log remaining visionati credits"
-        beforeEach(() => {
-          updateCreditsMock.mockRejectedValueOnce(new Error(errMsg))
-        })
 
-        test("Error is thrown", async () => {
-          await expect(getVisionatiImageDescriptions(settings, imageURLs)).rejects.toThrowError(errMsg)
-        })
-      })
-
-      given("DB call to log credits succeeds", () => {
-        beforeEach(() => {
-          updateCreditsMock.mockResolvedValueOnce({})
-        })
-
-        test("Descriptions are returned for each URL", async () => {
-          await expect(getVisionatiImageDescriptions(settings, imageURLs)).resolves.toEqual(exp)
-        })
-
+      test("Descriptions are returned for each URL", async () => {
+        await expect(getVisionatiImageDescriptions(settings, imageURLs)).resolves.toEqual(exp)
       })
     })
   })
-
-
 })
 

@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
-import { SocketProvider } from "~/socket/context";
 import io from "socket.io-client";
+import { AppProvider } from "@shopify/shopify-app-remix/react";
 import type { Socket } from "socket.io-client";
 import type { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
-import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
+import { SocketProvider } from "~/socket/context";
+import { BillingProvider } from "~/billing/context";
 import { authenticate } from "../shopify.server";
+import { useRoutedFetcher } from '~/fetcher';
+import { BillingInfo } from '~/shopify.types';
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -26,6 +29,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function App() {
   const { apiKey, shopId } = useLoaderData<typeof loader>();
   const [socket, setSocket] = useState<Socket>();
+  const { data } = useRoutedFetcher<BillingInfo>("/app/billing");
 
   useEffect(() => {
     const socket = io();
@@ -37,22 +41,26 @@ export default function App() {
 
   return (
     <SocketProvider socket={socket} shopId={shopId}>
-      <AppProvider isEmbeddedApp apiKey={apiKey}>
-        <NavMenu>
-          <Link to="/app" rel="home">
-            Home
-          </Link>
+      <BillingProvider billing={data}>
+        <AppProvider isEmbeddedApp apiKey={apiKey}>
+          <NavMenu>
+            <Link to="/app" rel="home">
+              Home
+            </Link>
+            { /*
           <Link to="/app/settings">
             Settings
           </Link>
           <Link to="/app/products">
             Product Descriptions
           </Link>
-        </NavMenu>
+          */ }
+          </NavMenu>
 
-        <Outlet />
+          <Outlet />
 
-      </AppProvider>
+        </AppProvider>
+      </BillingProvider>
     </SocketProvider>
   );
 }

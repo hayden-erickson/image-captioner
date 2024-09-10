@@ -3,9 +3,9 @@
   "private": true,
   "scripts": {
     "build": "remix vite:build",
-    "shopify:dev": "shopify app dev",
+    "shopify:dev": "shopify app dev --tunnel-url 'https://f28c-2605-59c8-30dc-ae10-d86d-8c00-de4b-8373.ngrok-free.app:3000'",
     "dev": "tsx ./server.ts",
-    "prestart": "npm run build",
+    "prestart": "npm run setup && npm run build",
     "start": "NODE_ENV=production tsx ./server.ts",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",

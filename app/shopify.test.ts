@@ -1,16 +1,17 @@
 import { jest, describe, expect, beforeEach, afterEach, test } from "@jest/globals";
 import {
   forEachProductPage,
-  GetProductsFn,
   shopifyClient,
   getProduct,
   updateProduct,
-  GQLFn,
 } from "./shopify.server"
 
 import {
   Product,
   ProductConnection,
+  GetProductsFn,
+  GQLFn,
+  trimStr,
 } from "./shopify.types"
 
 const given = describe
@@ -312,5 +313,68 @@ describe("forEachProductPage", () => {
       })).not.toThrow()
 
     })
+  })
+})
+
+describe("trimStr", () => {
+  let examples = [
+    {
+      desc: `Gray Knit Beanie Classic Gray Knit Beanie Stay warm and stylish no matter the season with our Classic Gray Knit Beanie. Crafted with precision, this beanie offers a timeless design that seamlessly blends with any outfit. Key Features: Quality Material: Made from high-quality knit fabric, ensuring durability and long-lasting wear. Unisex Design: Suitable for both men and women, it provides a versatile style that complements a wide range of looks. Comfort Fit: Soft and stretchy material that adapts to different head sizes for a snug and comfortable fit. Warmth: Perfect for cooler weather, keeping you warm and cozy without compromising on style. Compact and Lightweight: Easy to carry and store, making it a practical addition to your wardrobe. Specifications: Color Gray Material High-quality knit fabric Size One size fits all Care Instructions Machine wash cold, lay flat to dry Benefits: The Classic Gray Knit Beanie is your go-to accessory for effortless style and comfort. Its neutral color makes it easy to pair with any outfit, while the warm, soft fabric ensures you stay cozy during chilly days. Whether you're heading to a casual outing or an outdoor adventure, this beanie adds a fashionable touch to your ensemble. Why Choose Our Beanie? Our beanie stands out with its exceptional quality and attention to detail. It promises not only style but also warmth and comfort. With its unisex design, it serves as a perfect gift for family and friends. The compact size allows you to carry it without any hassle, making it indispensable for travel and daily use.`,
+      aiDesc: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Classic Gray Beanie - Stylish, Warm, and Comfortable Knit Hat for All Seasons">
+    <meta name="keywords" content="gray beanie, knit hat, warm beanie, comfortable beanie, stylish beanie, beanie for all seasons">
+    <title>Gray Knit Beanie</title>
+</head>
+<body>
+    <h1>Classic Gray Knit Beanie</h1>
+    <p>Stay warm and stylish no matter the season with our Classic Gray Knit Beanie. Crafted with precision, this beanie offers a timeless design that seamlessly blends with any outfit.</p>
+
+    <h2>Key Features:</h2>
+    <ul>
+        <li><strong>Quality Material:</strong> Made from high-quality knit fabric, ensuring durability and long-lasting wear.</li>
+        <li><strong>Unisex Design:</strong> Suitable for both men and women, it provides a versatile style that complements a wide range of looks.</li>
+        <li><strong>Comfort Fit:</strong> Soft and stretchy material that adapts to different head sizes for a snug and comfortable fit.</li>
+        <li><strong>Warmth:</strong> Perfect for cooler weather, keeping you warm and cozy without compromising on style.</li>
+        <li><strong>Compact and Lightweight:</strong> Easy to carry and store, making it a practical addition to your wardrobe.</li>
+    </ul>
+
+    <h2>Specifications:</h2>
+    <table>
+        <tr>
+            <th>Color</th>
+            <td>Gray</td>
+        </tr>
+        <tr>
+            <th>Material</th>
+            <td>High-quality knit fabric</td>
+        </tr>
+        <tr>
+            <th>Size</th>
+            <td>One size fits all</td>
+        </tr>
+        <tr>
+            <th>Care Instructions</th>
+            <td>Machine wash cold, lay flat to dry</td>
+        </tr>
+    </table>
+
+    <h2>Benefits:</h2>
+    <p>The Classic Gray Knit Beanie is your go-to accessory for effortless style and comfort. Its neutral color makes it easy to pair with any outfit, while the warm, soft fabric ensures you stay cozy during chilly days. Whether you're heading to a casual outing or an outdoor adventure, this beanie adds a fashionable touch to your ensemble.</p>
+
+    <h2>Why Choose Our Beanie?</h2>
+    <p>Our beanie stands out with its exceptional quality and attention to detail. It promises not only style but also warmth and comfort. With its unisex design, it serves as a perfect gift for family and friends. The compact size allows you to carry it without any hassle, making it indispensable for travel and daily use.</p>
+</body>
+</html>`,
+    }
+  ]
+
+  test("descriptions are equal", () => {
+    for (const { desc, aiDesc } of examples) {
+      expect(trimStr(aiDesc)).toBe(trimStr(desc))
+    }
   })
 })

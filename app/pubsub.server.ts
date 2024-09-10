@@ -27,7 +27,6 @@ export function webhookMessageHandler(message: Message) {
 
 export async function productCreateHandler(message: Message) {
   const data = JSON.parse(message.data.toString());
-  console.log('handling product create webhook')
 
   if (!data?.admin_graphql_api_id) {
     return;

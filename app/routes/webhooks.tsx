@@ -28,5 +28,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       throw new Response("Unhandled webhook topic", { status: 404 });
   }
 
+  //  APP_PURCHASES_ONE_TIME_UPDATE: Triggered when the status of an
+  //    AppPurchaseOneTime object is changed.
+  //
+  //  APP_SUBSCRIPTIONS_UPDATE: Triggered when the status, or capped amount, of an
+  //    AppSubscription object is changed, and when a subscription's status changes.
+  //
+  //  APP_SUBSCRIPTIONS_APPROACHING_CAPPED_AMOUNT: Triggered when the balance used on
+  //    an app subscription crosses 90% of the capped amount.
+
   throw new Response();
 };

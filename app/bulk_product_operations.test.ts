@@ -12,6 +12,7 @@ import {
   bulkProductUpdate,
   logProductDescriptionUpdatesClient,
   filterProductsHaveAIDescriptions,
+  countShopDescriptions,
 } from "./bulk_product_operations.server"
 import {
   URLDescriptionIdx
@@ -403,6 +404,8 @@ describe("filterProductsHaveAIDescriptions", () => {
           id: crypto.randomUUID(),
           title: 'AI Shoes',
           description: 'Shoes with an AI generated description',
+          onlineStoreUrl: '',
+          onlineStorePreviewUrl: '',
           featuredImage: {
             url: 'shoes.com/img.png'
           },
@@ -411,6 +414,8 @@ describe("filterProductsHaveAIDescriptions", () => {
           id: crypto.randomUUID(),
           title: 'Shoes',
           description: 'These are just regular shoes',
+          onlineStoreUrl: '',
+          onlineStorePreviewUrl: '',
           featuredImage: {
             url: 'shoes.com/img.png'
           },

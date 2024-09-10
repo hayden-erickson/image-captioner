@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react';
 
 import {
-  Card,
-  Page,
   IndexTable,
   useIndexResourceState,
   useSetIndexFiltersMode,
   Text,
+  Link,
   Thumbnail,
   TabProps,
   Badge,
   IndexFilters,
 } from '@shopify/polaris';
-import { TitleBar } from "@shopify/app-bridge-react";
 
 import {
   useSearchParams,
@@ -24,9 +22,8 @@ import { useProductsSubscription } from "~/socket/products";
 import {
   Product,
   ProductWithAIAnnotation,
+  strippedEqual
 } from "../shopify.types"
-
-
 
 export type TabFilterKey =
   'all_products' |
@@ -46,14 +43,31 @@ const tabFilters: TabFilter[] = [
   { id: 'products_ai_descriptions', title: 'AI Descriptions' },
 ];
 
-const strippedEqual = (a: string, b: string): boolean =>
-  a.replace(/\s/g, '') === b.replace(/\s/g, '')
-
-
 type ProductRowProps = {
   product: ProductWithAIAnnotation;
   selected: boolean;
   index: number;
+}
+
+type ProductStatusBadgeProps = {
+  description?: string;
+  aiDescription?: string;
+}
+
+function ProductStatusBadge({ description, aiDescription }: ProductStatusBadgeProps) {
+  if (aiDescription && !strippedEqual(description || '', aiDescription || '')) {
+    return <Badge tone='info' progress='partiallyComplete'>Pending AI description</Badge>
+  }
+
+  if (!description && !aiDescription) {
+    return <Badge progress='incomplete'>No Description</Badge>
+  }
+
+  if (description && !aiDescription) {
+    return <Badge tone='warning' progress='partiallyComplete' >No AI Description</Badge>
+  }
+
+  return <Badge tone='success' progress='complete'>AI Description</Badge>
 }
 
 function ProductRow({
@@ -62,7 +76,7 @@ function ProductRow({
     title,
     featuredImage,
     description,
-    aiDescription
+    aiDescription,
   },
   selected,
   index
@@ -83,15 +97,7 @@ function ProductRow({
         </Text>
       </IndexTable.Cell>
       <IndexTable.Cell>
-        {
-          !description && !aiDescription ?
-            <Badge progress='incomplete'>No Description</Badge>
-            : !aiDescription ?
-              <Badge tone='warning' progress='partiallyComplete' >No AI Description</Badge>
-              : !strippedEqual(description, aiDescription) ?
-                <Badge tone='info' progress='partiallyComplete'>Pending AI description</Badge>
-                : <Badge tone='success' progress='complete'>AI Description</Badge>
-        }
+        <ProductStatusBadge description={description} aiDescription={aiDescription} />
       </IndexTable.Cell>
     </IndexTable.Row>
   )
@@ -281,15 +287,12 @@ export default function ProductsPage() {
   const reviewInProgress = urlParams.get('review') === "true"
 
   return (
-    <Page>
-      <TitleBar title="Products" />
-      <Card>
-        {
-          reviewInProgress ?
-            (<ProductReview />) :
-            (<ProductsTable />)
-        }
-      </Card>
-    </Page >
+    <>
+      {
+        reviewInProgress ?
+          (<ProductReview />) :
+          (<ProductsTable />)
+      }
+    </>
   )
 }

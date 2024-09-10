@@ -14,10 +14,7 @@ import { useRoutedFetcher } from "~/fetcher";
 
 import {
   BlockStack,
-  Button,
-  ButtonGroup,
   FormLayout,
-  Link,
   Select,
   TextField,
 } from "@shopify/polaris";
@@ -34,7 +31,8 @@ import {
 } from "../visionati.types";
 
 
-export const loader = async ({ request }: LoaderFunctionArgs): Promise<TypedResponse<VisionatiSettings | null>> => {
+export const loader = async ({ request }: LoaderFunctionArgs):
+  Promise<TypedResponse<Omit<VisionatiSettings, 'apiKey'> | null>> => {
   const { session } = await authenticate.admin(request);
 
   const settings = await db.shopVisionatiSettings.findUnique(
@@ -43,6 +41,8 @@ export const loader = async ({ request }: LoaderFunctionArgs): Promise<TypedResp
         shop_id: session.shop,
       },
     })
+
+  console.log(settings?.custom_prompt)
 
   return json(settings ? {
     shopId: settings.shop_id,
@@ -54,9 +54,8 @@ export const loader = async ({ request }: LoaderFunctionArgs): Promise<TypedResp
 };
 
 // Note the "action" export name, this will handle our form POST
-export const action = async ({
-  request,
-}: ActionFunctionArgs): Promise<TypedResponse<VisionatiSettings>> => {
+export const action = async ({ request, }: ActionFunctionArgs):
+  Promise<TypedResponse<Omit<VisionatiSettings, 'apiKey'>>> => {
   const { session } = await authenticate.admin(request);
 
   const {
@@ -64,6 +63,8 @@ export const action = async ({
     role,
     customPrompt,
   } = await request.json()
+
+  console.log(customPrompt)
 
   await db.shopVisionatiSettings.upsert(
     {
@@ -107,8 +108,7 @@ function SelectBackend({
 
   return (
     <Select
-      labelInline
-      label="Backend"
+      label="AI Model"
       options={options}
       disabled={disabled}
       onChange={onBackendChange}
@@ -134,7 +134,6 @@ function SelectRole({
 
   return (
     <Select
-      labelInline
       label="Role"
       options={options}
       disabled={disabled}
@@ -151,6 +150,11 @@ type CustomPromptProps = {
   disabled?: boolean;
 }
 
+const customPromptHelpText = `
+Set a custom prompt for generating product descriptions.
+This takes precedent over the role value above.
+This prompt is combined with the product image to generate a description.`
+
 function CustomPrompt({
   prompt,
   onPromptChange,
@@ -164,7 +168,7 @@ function CustomPrompt({
       disabled={disabled}
       value={prompt}
       onChange={onPromptChange}
-      helpText="Set a custom prompt for generating product descriptions. This takes precedent over the role value above."
+      helpText={customPromptHelpText}
       autoComplete="off" />
   )
 }
@@ -178,6 +182,7 @@ export default function Settings() {
 
   //const [promptLoaded, setPromptLoaded] = useState(false)
   const [localPrompt, setLocalPrompt] = useState('')
+  const [promptTouched, setPromptTouched] = useState(false)
 
   const [timeoutID, setTimeoutID] = useState(null)
 
@@ -206,18 +211,16 @@ export default function Settings() {
 
   const debouncedSavePrompt = (customPrompt: string) => {
     setLocalPrompt(customPrompt)
+    setPromptTouched(true)
 
     if (timeoutID) {
       clearTimeout(timeoutID)
     }
 
-    const tid = setTimeout(() => {
-      console.log(`Saving ${customPrompt}`)
-      saveSettings({
-        ...settings,
-        customPrompt,
-      })
-    }, 2000)
+    const tid = setTimeout(() => saveSettings({
+      ...settings,
+      customPrompt,
+    }), 2000)
 
     setTimeoutID(tid)
   }
@@ -226,21 +229,19 @@ export default function Settings() {
   return (
     <FormLayout>
       <BlockStack gap="200">
-        <FormLayout.Group>
-          <SelectBackend
-            backend={settings?.backend || DEFAULT_BACKEND}
-            onBackendChange={saveBackend}
-            disabled={isLoading}
-          />
-          <SelectRole
-            role={settings?.role || DEFAULT_ROLE}
-            onRoleChange={saveRole}
-            disabled={isLoading}
-          />
-        </FormLayout.Group>
+        <SelectBackend
+          backend={settings?.backend || DEFAULT_BACKEND}
+          onBackendChange={saveBackend}
+          disabled={isLoading}
+        />
+        <SelectRole
+          role={settings?.role || DEFAULT_ROLE}
+          onRoleChange={saveRole}
+          disabled={isLoading}
+        />
 
         <CustomPrompt
-          prompt={localPrompt}
+          prompt={promptTouched ? localPrompt : settings?.customPrompt || ''}
           onPromptChange={debouncedSavePrompt}
           disabled={isLoading}
         />

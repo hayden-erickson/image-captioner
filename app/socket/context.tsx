@@ -13,18 +13,19 @@ type ShopifySocket = {
   shopId?: string;
 }
 
-const context = createContext<ShopifySocket | undefined>(undefined);
+const socketCtx = createContext<ShopifySocket | undefined>(undefined);
 
 export function useSocket() {
-  return useContext(context);
+  return useContext(socketCtx);
 }
 
 export function SocketProvider({ socket, shopId, children }: ProviderProps) {
   socket?.on("error", console.log)
 
   return (
-    <context.Provider value={{ socket, shopId }}>
+    <socketCtx.Provider value={{ socket, shopId }}>
       {children}
-    </context.Provider>
+    </socketCtx.Provider>
   );
 }
+

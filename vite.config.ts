@@ -17,6 +17,8 @@ if (
 const host = new URL(process.env.SHOPIFY_APP_URL || "http://localhost")
   .hostname;
 
+console.log(host)
+
 let hmrConfig;
 if (host === "localhost") {
   hmrConfig = {

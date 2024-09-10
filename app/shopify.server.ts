@@ -4,6 +4,7 @@ import {
   ApiVersion,
   AppDistribution,
   shopifyApp,
+  BillingInterval,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { restResources } from "@shopify/shopify-api/rest/admin/2024-07";
@@ -12,6 +13,18 @@ import "@shopify/shopify-app-remix/server/adapters/node";
 import {
   Product,
   ProductConnection,
+  GetProductsFn,
+  GetProductsArgs,
+  GQLFn,
+  ForEachProductPageArgs,
+  FilterAllProductsArgs,
+  getProductGQL,
+  getProductsPageGQL,
+  updateProductGQL,
+  FREE_PLAN,
+  BASIC_PLAN,
+  STANDARD_PLAN,
+  PREMIUM_PLAN,
 } from './shopify.types'
 
 const shopify = shopifyApp({
@@ -24,6 +37,36 @@ const shopify = shopifyApp({
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   restResources,
+  billing: {
+    [FREE_PLAN]: {
+      lineItems: [{
+        amount: 0,
+        currencyCode: 'USD',
+        interval: BillingInterval.Every30Days,
+      }],
+    },
+    [BASIC_PLAN]: {
+      lineItems: [{
+        amount: 10,
+        currencyCode: 'USD',
+        interval: BillingInterval.Every30Days,
+      }],
+    },
+    [STANDARD_PLAN]: {
+      lineItems: [{
+        amount: 15,
+        currencyCode: 'USD',
+        interval: BillingInterval.Every30Days,
+      }],
+    },
+    [PREMIUM_PLAN]: {
+      lineItems: [{
+        amount: 25,
+        currencyCode: 'USD',
+        interval: BillingInterval.Every30Days,
+      }],
+    },
+  },
   future: {
     unstable_newEmbeddedAuthStrategy: true,
   },
@@ -40,31 +83,6 @@ export const unauthenticated = shopify.unauthenticated;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
-
-
-type GetProductsArgs = {
-  query?: string | undefined | null;
-  first?: number;
-  after?: string | undefined | null;
-  last?: number;
-  before?: string | undefined | null;
-}
-
-type ForEachProductPageArgs = {
-  getShopifyProducts: GetProductsFn;
-  callback: ProductPageFn;
-}
-
-type FilterAllProductsArgs = {
-  getShopifyProducts: GetProductsFn;
-  filter: ProductFilterFn;
-}
-
-export type GetProductsFn = ({ first, after, last, before }: GetProductsArgs) => Promise<ProductConnection>;
-export type ProductPageFn = (page: Product[]) => Promise<void>;
-export type ProductPageIteratorFn = (args: ForEachProductPageArgs) => Promise<void>;
-export type ProductFilterFn = (page: Product[]) => Promise<Product[]>
-export type GQLFn = (query: string, variables: any) => Promise<any>
 
 export function shopifyClient(shopDomain: string, accessToken: string): GQLFn {
   const sd = `https://${shopDomain}/admin/api/${LATEST_API_VERSION}/graphql.json`;
@@ -91,19 +109,7 @@ export function shopifyClient(shopDomain: string, accessToken: string): GQLFn {
 }
 
 export async function getProduct(gql: GQLFn, id: string): Promise<Product> {
-  const response = await gql(`#graphql
-    query GetProduct($id:ID!) {
-      product(id: $id) {
-        id
-        title
-        description
-        featuredImage {
-          url
-        }
-      }
-    }`,
-    { variables: { id } }
-  )
+  const response = await gql(getProductGQL, { variables: { id } })
 
   let {
     data: {
@@ -117,26 +123,7 @@ export async function getProduct(gql: GQLFn, id: string): Promise<Product> {
 
 export function getProductsClient(gql: GQLFn): GetProductsFn {
   return async function({ query, first, after, last, before }: GetProductsArgs): Promise<ProductConnection> {
-    const response = await gql(
-      `#graphql
-    query GetProducts($query: String, $first: Int, $after: String, $last: Int, $before: String) {
-      products(query: $query, first: $first, after: $after, last: $last, before: $before) {
-        nodes {
-          id
-          title
-          description
-          featuredImage {
-            url
-          }
-        }
-        pageInfo {
-          startCursor
-          endCursor
-          hasNextPage
-          hasPreviousPage
-        }
-      }
-    }`,
+    const response = await gql(getProductsPageGQL,
       {
         variables: {
           query,
@@ -176,17 +163,7 @@ export async function productHasAIDescription(product_id: string): Promise<boole
 }
 
 export async function updateProduct(gql: GQLFn, id: string, descriptionHtml: string) {
-  await gql(
-    `#graphql
-          mutation updateProduct($input: ProductInput!) {
-            productUpdate(input: $input) {
-              product {
-                id
-                title
-                description
-              }
-            }
-          }`,
+  await gql(updateProductGQL,
     {
       variables: {
         input: {
@@ -254,4 +231,3 @@ export async function filterAllProducts({
 
   return out
 }
-
