@@ -14,6 +14,7 @@
     "env": "shopify app env",
     "docker-start": "npm run setup && npm run start",
     "setup": "prisma generate && prisma migrate deploy",
+    "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
     "shopify": "shopify",
     "prisma": "prisma",
     "graphql-codegen": "graphql-codegen",
@@ -49,7 +50,6 @@
     "vite-tsconfig-paths": "^5.0.1"
   },
   "devDependencies": {
-    "@remix-run/dev": "*",
     "@babel/core": "^7.24.7",
     "@babel/preset-env": "^7.24.7",
     "@babel/preset-typescript": "^7.24.7",

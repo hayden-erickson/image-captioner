@@ -1,7 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 
-
 import { login } from "../../shopify.server";
 
 import styles from "./styles.module.css";

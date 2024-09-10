@@ -55,6 +55,7 @@ export const visionatiRoles: VisionatiRole[] = [
   "tweet"
 ]
 
+
 export const DEFAULT_ROLE: VisionatiRole = "ecommerce"
 export const DEFAULT_BACKEND: VisionatiBackend = "gemini"
 export const DEFAULT_FEATURES: [VisionatiFeature] = ['descriptions']

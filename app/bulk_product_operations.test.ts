@@ -15,6 +15,7 @@ import {
   bulkProductUpdate,
   logProductDescriptionUpdatesClient,
   filterProductsHaveAIDescriptions,
+  countShopDescriptions,
 } from "./bulk_product_operations.server"
 import {
   URLDescriptionIdx

@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { useRoutedFetcher } from '~/fetcher';
-import { LoginErrorResp } from './types';
-import type { ActionFunctionArgs, LoaderFunctionArgs, TypedResponse } from "@remix-run/node";
+import { useLoaderData, useActionData } from '@remix-run/react';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Form } from "@remix-run/react";
 import {
@@ -22,13 +21,13 @@ import { loginErrorMessage } from "./error.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
-export async function loader({ request }: LoaderFunctionArgs): Promise<TypedResponse<LoginErrorResp>> {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const errors = loginErrorMessage(await login(request));
 
   return json({ errors, polarisTranslations });
 };
 
-export async function action({ request }: ActionFunctionArgs): Promise<TypedResponse<LoginErrorResp>> {
+export const action = async ({ request }: ActionFunctionArgs) => {
   const errors = loginErrorMessage(await login(request));
 
   return json({
@@ -37,12 +36,13 @@ export async function action({ request }: ActionFunctionArgs): Promise<TypedResp
 };
 
 export default function Auth() {
-  const { data, isLoading } = useRoutedFetcher<LoginErrorResp>("/auth/login")
+  const loaderData = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const [shop, setShop] = useState("");
-  const { errors } = isLoading ? { errors: null } : data;
+  const { errors } = actionData || loaderData;
 
   return (
-    <PolarisAppProvider i18n={data?.polarisTranslations}>
+    <PolarisAppProvider i18n={loaderData.polarisTranslations}>
       <Page>
         <Card>
           <Form method="post">
@@ -58,7 +58,7 @@ export default function Auth() {
                 value={shop}
                 onChange={setShop}
                 autoComplete="on"
-                error={errors?.shop}
+                error={errors.shop}
               />
               <Button submit>Log in</Button>
             </FormLayout>
