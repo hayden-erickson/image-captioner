@@ -10,9 +10,11 @@ Visit the [`shopify.dev` documentation](https://shopify.dev/docs/api/shopify-app
 
 ### Prerequisites
 
-1. You must [download and install Node.js](https://nodejs.org/en/download/) if you don't already have it.
-2. You must [create a Shopify partner account](https://partners.shopify.com/signup) if you don’t have one.
-3. You must create a store for testing if you don't have one, either a [development store](https://help.shopify.com/en/partners/dashboard/development-stores#create-a-development-store) or a [Shopify Plus sandbox store](https://help.shopify.com/en/partners/dashboard/managing-stores/plus-sandbox-store).
+Before you begin, you'll need the following:
+
+1. **Node.js**: [Download and install](https://nodejs.org/en/download/) it if you haven't already.
+2. **Shopify Partner Account**: [Create an account](https://partners.shopify.com/signup) if you don't have one.
+3. **Test Store**: Set up either a [development store](https://help.shopify.com/en/partners/dashboard/development-stores#create-a-development-store) or a [Shopify Plus sandbox store](https://help.shopify.com/en/partners/dashboard/managing-stores/plus-sandbox-store) for testing your app.
 
 ### Setup
 
@@ -88,11 +90,11 @@ export async function loader({ request }) {
 }
 ```
 
-This template come preconfigured with examples of:
+This template comes preconfigured with examples of:
 
-1. Setting up your Shopify app in [/app/shopify.server.js](https://github.com/Shopify/shopify-app-template-remix/blob/main/app/shopify.server.js)
-2. Querying data using Graphql. Please see: [/app/routes/app.\_index.jsx](https://github.com/Shopify/shopify-app-template-remix/blob/main/app/routes/app._index.jsx).
-3. Responding to mandatory webhooks in [/app/routes/webhooks.jsx](https://github.com/Shopify/shopify-app-template-remix/blob/main/app/routes/webhooks.jsx)
+1. Setting up your Shopify app in [/app/shopify.server.ts](https://github.com/Shopify/shopify-app-template-remix/blob/main/app/shopify.server.ts)
+2. Querying data using Graphql. Please see: [/app/routes/app.\_index.tsx](https://github.com/Shopify/shopify-app-template-remix/blob/main/app/routes/app._index.tsx).
+3. Responding to mandatory webhooks in [/app/routes/webhooks.tsx](https://github.com/Shopify/shopify-app-template-remix/blob/main/app/routes/webhooks.tsx)
 
 Please read the [documentation for @shopify/shopify-app-remix](https://www.npmjs.com/package/@shopify/shopify-app-remix#authenticating-admin-requests) to understand what other API's are available.
 
@@ -115,7 +117,7 @@ Here’s a short list of databases providers that provide a free tier to get sta
 | Redis      | Key-value        | [Digital Ocean](https://www.digitalocean.com/try/managed-databases-redis), [Amazon MemoryDB](https://aws.amazon.com/memorydb/)                                                                                                        |
 | MongoDB    | NoSQL / Document | [Digital Ocean](https://www.digitalocean.com/try/managed-databases-mongodb), [MongoDB Atlas](https://www.mongodb.com/atlas/database)                                                                                                  |
 
-To use one of these, you can use a different [datasource provider](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#datasource) in your `schema.prisma` file, or a different [SessionStorage adapter package](https://github.com/Shopify/shopify-api-js/tree/main/docs/guides/session-storage.md).
+To use one of these, you can use a different [datasource provider](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#datasource) in your `schema.prisma` file, or a different [SessionStorage adapter package](https://github.com/Shopify/shopify-api-js/blob/main/packages/shopify-api/docs/guides/session-storage.md).
 
 ### Build
 
@@ -144,6 +146,30 @@ pnpm run build
 When you're ready to set up your app in production, you can follow [our deployment documentation](https://shopify.dev/docs/apps/deployment/web) to host your app on a cloud provider like [Heroku](https://www.heroku.com/) or [Fly.io](https://fly.io/).
 
 When you reach the step for [setting up environment variables](https://shopify.dev/docs/apps/deployment/web#set-env-vars), you also need to set the variable `NODE_ENV=production`.
+
+### Hosting on Vercel
+
+Using the Vercel Preset is recommended when hosting your Shopify Remix app on Vercel. You'll also want to ensure imports that would normally come from `@remix-run/node` are imported from `@vercel/remix` instead. Learn more about hosting Remix apps on Vercel [here](https://vercel.com/docs/frameworks/remix).
+
+```diff
+// vite.config.ts
+import { vitePlugin as remix } from "@remix-run/dev";
+import { defineConfig, type UserConfig } from "vite";
+import tsconfigPaths from "vite-tsconfig-paths";
++ import { vercelPreset } from '@vercel/remix/vite';
+
+installGlobals();
+
+export default defineConfig({
+  plugins: [
+    remix({
+      ignoredRouteFiles: ["**/.*"],
++     presets: [vercelPreset()],
+    }),
+    tsconfigPaths(),
+  ],
+});
+```
 
 ## Gotchas / Troubleshooting
 
@@ -178,30 +204,31 @@ Shopify apps are best when they are embedded into the Shopify Admin. This templa
 ### OAuth goes into a loop when I change my app's scopes
 
 If you change your app's scopes and authentication goes into a loop and fails with a message from Shopify that it tried too many times, you might have forgotten to update your scopes with Shopify.
-To do that, you can run the `config push` CLI command.
+To do that, you can run the `deploy` CLI command.
 
 Using yarn:
 
 ```shell
-yarn shopify app config push
+yarn deploy
 ```
 
 Using npm:
 
 ```shell
-npm run shopify app config push
+npm run deploy
 ```
 
 Using pnpm:
 
 ```shell
-pnpm run shopify app config push
+pnpm run deploy
 ```
 
 ### My webhook subscriptions aren't being updated
 
-This template registers webhooks after OAuth completes, usng the `afterAuth` hook when calling `shopifyApp`.
+This template registers webhooks after OAuth completes, using the `afterAuth` hook when calling `shopifyApp`.
 The package calls that hook in 2 scenarios:
+
 - After installing the app
 - When an access token expires
 
@@ -214,7 +241,7 @@ That will force the OAuth process and call the `afterAuth` hook.
 
 Webhooks subscriptions created in the [Shopify admin](https://help.shopify.com/en/manual/orders/notifications/webhooks) will fail HMAC validation. This is because the webhook payload is not signed with your app's secret key.
 
-Create [webhook subscriptions]((https://shopify.dev/docs/api/shopify-app-remix/v1/guide-webhooks)) using the `shopifyApp` object instead.
+Create [webhook subscriptions](https://shopify.dev/docs/api/shopify-app-remix/v1/guide-webhooks) using the `shopifyApp` object instead.
 
 Test your webhooks with the [Shopify CLI](https://shopify.dev/docs/apps/tools/cli/commands#webhook-trigger) or by triggering events manually in the Shopify admin(e.g. Updating the product title to trigger a `PRODUCTS_UPDATE`).
 
@@ -225,7 +252,74 @@ By default the [graphql.vscode-graphql](https://marketplace.visualstudio.com/ite
 1. You use another Shopify API such as the storefront API.
 2. You use a third party GraphQL API.
 
-in this situation, please update the [.graphqlrc.js](https://github.com/Shopify/shopify-app-template-remix/blob/main/.graphqlrc.js) config.
+in this situation, please update the [.graphqlrc.ts](https://github.com/Shopify/shopify-app-template-remix/blob/main/.graphqlrc.ts) config.
+
+### First parameter has member 'readable' that is not a ReadableStream.
+
+See [hosting on Vercel](#hosting-on-vercel).
+
+### Admin object undefined on webhook events triggered by the CLI
+
+When you trigger a webhook event using the Shopify CLI, the `admin` object will be `undefined`. This is because the CLI triggers an event with a valid, but non-existent, shop. The `admin` object is only available when the webhook is triggered by a shop that has installed the app.
+
+Webhooks triggered by the CLI are intended for initial experimentation testing of your webhook configuration. For more information on how to test your webhooks, see the [Shopify CLI documentation](https://shopify.dev/docs/apps/tools/cli/commands#webhook-trigger).
+
+### Using Defer & await for streaming responses
+
+To test [streaming using defer/await](https://remix.run/docs/en/main/guides/streaming) during local development you'll need to use the Shopify CLI slightly differently:
+
+1. First setup ngrok: https://ngrok.com/product/secure-tunnels
+2. Create an ngrok tunnel on port 8080: `ngrok http 8080`.
+3. Copy the forwarding address. This should be something like: `https://f355-2607-fea8-bb5c-8700-7972-d2b5-3f2b-94ab.ngrok-free.app`
+4. In a separate terminal run `yarn shopify app dev --tunnel-url=TUNNEL_URL:8080` replacing `TUNNEL_URL` for the address you copied in step 3.
+
+By default the CLI uses a cloudflare tunnel. Unfortunately it cloudflare tunnels wait for the Response stream to finish, then sends one chunk.
+
+This will not affect production, since tunnels are only for local development.
+
+### Using MongoDB and Prisma
+
+By default this template uses SQLlite as the database. It is recommended to move to a persisted database for production. If you choose to use MongoDB, you will need to make some modifications to the schema and prisma configuration. For more information please see the [Prisma MongoDB documentation](https://www.prisma.io/docs/orm/overview/databases/mongodb).
+
+Alternatively you can use a MongDB database directly with the [MongoDB session storage adapter](https://github.com/Shopify/shopify-app-js/tree/main/packages/apps/session-storage/shopify-app-session-storage-mongodb).
+
+#### Mapping the id field
+
+In MongoDB, an ID must be a single field that defines an @id attribute and a @map("\_id") attribute.
+The prisma adapter expects the ID field to be the ID of the session, and not the \_id field of the document.
+
+To make this work you can add a new field to the schema that maps the \_id field to the id field. For more information see the [Prisma documentation](https://www.prisma.io/docs/orm/prisma-schema/data-model/models#defining-an-id-field)
+
+```prisma
+model Session {
+  session_id  String    @id @default(auto()) @map("_id") @db.ObjectId
+  id          String    @unique
+...
+}
+```
+
+#### Error: The "mongodb" provider is not supported with this command
+
+MongoDB does not support the [prisma migrate](https://www.prisma.io/docs/orm/prisma-migrate/understanding-prisma-migrate/overview) command. Instead, you can use the [prisma db push](https://www.prisma.io/docs/orm/reference/prisma-cli-reference#db-push) command and update the `shopify.web.toml` file with the following commands. If you are using MongoDB please see the [Prisma documentation](https://www.prisma.io/docs/orm/overview/databases/mongodb) for more information.
+
+```toml
+[commands]
+predev = "npx prisma generate && npx prisma db push"
+dev = "npm exec remix vite:dev"
+```
+
+#### Prisma needs to perform transactions, which requires your mongodb server to be run as a replica set
+
+See the [Prisma documentation](https://www.prisma.io/docs/getting-started/setup-prisma/start-from-scratch/mongodb/connect-your-database-node-mongodb) for connecting to a MongoDB database.
+
+### I want to use Polaris v13.0.0 or higher
+
+Currently, this template is set up to work on node v18.20 or higher. However, `@shopify/polaris` is limited to v12 because v13 can only run on node v20+.
+
+You don't have to make any changes to the code in order to be able to upgrade Polaris to v13, but you'll need to do the following:
+
+- Upgrade your node version to v20.10 or higher.
+- Update your `Dockerfile` to pull `FROM node:20-alpine` instead of `node:18-alpine`
 
 ## Benefits
 

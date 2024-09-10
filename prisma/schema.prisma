@@ -7,25 +7,71 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:CQaak3hZSiPgHmn6@127.0.0.1:3306/image_captioner_test?connection_limit=5&socket_timeout=3"
+  url      = env("GOOGLE_MYSQL_URL")
 }
 
 model Session {
-  id          String    @id
-  shop        String
-  state       String
-  isOnline    Boolean   @default(false)
-  scope       String?
-  expires     DateTime?
-  accessToken String
-  userId      BigInt?
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
 }
 
-model ShopVisionatiTokens {
+model ShopVisionatiSettings {
   shop_id             String    @id
-  visionati_api_token String
+  backend             String?
+  role                String?
+  custom_prompt       String?
+  credits             Int?
 }
 
 model ShopAutoImageDescriptions {
   shop_id String    @id
 }
+
+model ShopProductCatalogBulkUpdateRequests {
+  product_catalog_bulk_update_request_id String @id
+  shop_id String
+  start_time DateTime
+  end_time DateTime?
+  error Boolean?
+}
+
+model ShopProductDescriptionUpdates {
+  product_description_update_id String @id
+  product_id String
+  shop_id String
+  old_description String
+  new_description String
+  created_at DateTime
+}
+
+model ShopBulkUpdateRequestsDescriptionUpdates {
+  product_catalog_bulk_update_request_id String
+  product_description_update_id String @id
+  created_at DateTime
+}
+
+model ShopWebhookRequests {
+  webhook_request_id String @id
+  created_at DateTime
+  error Boolean?
+}
+
+model ShopWebhookRequestsDescriptionUpdates {
+  webhook_request_id String
+  product_description_update_id String @id
+  created_at DateTime
+}
+
