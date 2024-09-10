@@ -1,5 +1,18 @@
+import { wrap } from "module";
 import db from "./db.server";
 import {
+  artistPrompt,
+  criticPrompt,
+  comedianPrompt,
+  ecommercePrompt,
+  inspectorPrompt,
+  promoterPrompt,
+  realtorPrompt,
+  tweetPrompt,
+  captionPrompt,
+  promptPrompt,
+  promptBoilerplate,
+  GetImageDescriptionsFn,
   VisionatiBackend,
   VisionatiRole,
   VisionatiSettings,
@@ -12,8 +25,6 @@ import {
   DEFAULT_BACKEND,
 } from './visionati.types'
 
-export type GetImageDescriptionsFn = (imageUrls: string[]) => Promise<URLDescriptionIdx>
-
 async function sleep(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
@@ -21,34 +32,76 @@ async function sleep(ms: number) {
 }
 
 export async function visionatiClient(shopId: string): Promise<GetImageDescriptionsFn> {
+  const apiKey = process.env.VISIONATI_API_KEY
+
+  if (!apiKey) {
+    throw new Error("no visionati api key provided")
+  }
+
   const settings = await db.shopVisionatiSettings.findUnique({
     where: {
       shop_id: shopId,
     },
   })
 
-  if (!settings || !settings?.api_key) {
-    throw new Error("shop has no visionati api key")
-  }
-
   return async function(imageURLs: string[]): Promise<URLDescriptionIdx> {
     return getVisionatiImageDescriptions({
       shopId,
-      apiKey: settings.api_key,
-      role: settings.role as VisionatiRole,
-      backend: settings.backend as VisionatiBackend,
-      customPrompt: settings.custom_prompt || undefined,
+      apiKey,
+      role: settings?.role as VisionatiRole,
+      backend: settings?.backend as VisionatiBackend,
+      customPrompt: settings?.custom_prompt || undefined,
     }, imageURLs)
   }
+}
+
+function roleToPrompt(role: VisionatiRole): string {
+  switch (role) {
+    case 'artist':
+      return artistPrompt
+    case 'critic':
+      return criticPrompt
+    case 'comedian':
+      return comedianPrompt
+    case 'ecommerce':
+      return ecommercePrompt
+    case 'inspector':
+      return inspectorPrompt
+    case 'promoter':
+      return promoterPrompt
+    case 'realtor':
+      return realtorPrompt
+    case 'tweet':
+      return tweetPrompt
+    case 'caption':
+      return captionPrompt
+    case 'prompt':
+      return promptPrompt
+    default:
+      return ''
+  }
+}
+
+function wrapPromptWithBoilerplate(prompt: string): string {
+  return `${prompt}
+  ${promptBoilerplate}`
+}
+
+export function createPrompt(settings: VisionatiSettings): string {
+  if (settings.customPrompt) {
+    return wrapPromptWithBoilerplate(settings.customPrompt)
+  }
+
+  return wrapPromptWithBoilerplate(
+    roleToPrompt(settings.role || DEFAULT_ROLE))
 }
 
 
 export async function getVisionatiImageDescriptions(settings: VisionatiSettings, imageURLs: string[]): Promise<URLDescriptionIdx> {
   const vReq: VisionatiReq = {
     feature: DEFAULT_FEATURES,
-    role: settings.role || DEFAULT_ROLE,
     backend: settings.backend || DEFAULT_BACKEND,
-    ...(settings.customPrompt ? { prompt: settings.customPrompt } : null),
+    prompt: createPrompt(settings),
     url: imageURLs
   }
 

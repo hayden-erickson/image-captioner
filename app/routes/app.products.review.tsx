@@ -50,7 +50,11 @@ export const action = async ({ request }: ActionFunctionArgs): Promise<TypedResp
   const { admin } = await authenticate.admin(request);
   const { product } = await request.json()
 
-  await updateProduct(admin, product.id, product.aiDescription)
+  if (!product) {
+    return json({} as ProductWithAIAnnotation)
+  }
+
+  await updateProduct(admin.graphql, product.id, product.aiDescription)
 
   return json(product)
 }
@@ -63,7 +67,7 @@ export const loader = async ({ request }: LoaderFunctionArgs): Promise<TypedResp
     return json({} as ProductWithAIAnnotation)
   }
 
-  const product = await getProduct(admin, productId)
+  const product = await getProduct(admin.graphql, productId)
   const aiDescriptions = await getAIProductDescriptions(productId, 1)
 
   return json({
@@ -96,7 +100,7 @@ function ProductReview({
   const loadData = async () => {
     const loadParams = new URLSearchParams()
     loadParams.set('product', productId)
-    productReview.load(`/settings/products/review?${loadParams.toString()}`)
+    productReview.load(`/app/products/review?${loadParams.toString()}`)
     setUserDescription('')
   }
 
@@ -120,7 +124,7 @@ function ProductReview({
   const saveAIDescription = async () => {
     productReview.submit({ product }, {
       method: "POST",
-      action: "/settings/products/review",
+      action: "/app/products/review",
       encType: "application/json",
     })
 
@@ -150,10 +154,14 @@ function ProductReview({
       </InlineStack>
 
       {
-        isLoading ? <Spinner /> : <Thumbnail
-          source={product?.featuredImage?.url}
-          size="large"
-          alt={product.title} />
+        isLoading ?
+          <Spinner />
+          : product?.featuredImage?.url ?
+            <Thumbnail
+              source={product?.featuredImage?.url}
+              size="large"
+              alt={product.title} />
+            : null
       }
 
       <TextField label="Description"
@@ -195,11 +203,16 @@ function ProductReview({
   )
 }
 
-export default function({
-  setReviewInProgress,
-}: { setReviewInProgress: (p: boolean) => void }) {
+export default function() {
   const [selectedProduct, setSelectedProduct] = useState(0)
   const [urlParams, setUrlParams] = useSearchParams()
+
+  const exitReview = () =>
+    setUrlParams((urlParams: URLSearchParams) => {
+      urlParams.delete('review')
+      urlParams.delete('product')
+      return urlParams
+    })
 
   const productIds = urlParams.getAll('product')
   const numProducts = productIds?.length
@@ -230,14 +243,14 @@ export default function({
           <InlineStack wrap={false} gap="200" >
             <Button
               variant='tertiary'
-              onClick={() => setReviewInProgress(false)}
+              onClick={exitReview}
               icon={ArrowLeftIcon} />
             <Text as="h1" variant="headingLg">No products to review</Text>
           </InlineStack>
         ) : (
           <ProductReview
             productId={selectedProductId}
-            onExitProductReview={() => setReviewInProgress(false)}
+            onExitProductReview={exitReview}
             onReviewComplete={removeProductFromQueue}
           />
         )

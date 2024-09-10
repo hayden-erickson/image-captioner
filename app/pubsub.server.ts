@@ -1,102 +1,12 @@
-import { LATEST_API_VERSION } from "@shopify/shopify-app-remix/server";
 import type { Message } from "@google-cloud/pubsub";
 import db from "./db.server";
 import { visionatiClient } from "./visionati.server";
+import {
+  shopifyClient,
+  getProduct,
+  updateProduct,
+} from "./shopify.server";
 
-type ShopifyProduct = {
-  id: string;
-  description: string;
-  variants: {
-    nodes: {
-      id: string;
-    }[];
-  };
-  featuredImage: {
-    url: string;
-  };
-};
-
-type UpdateProductInput = {
-  id: string;
-  descriptionHtml: string;
-  // Including only the product variant ID prevents the
-  // variant from being deleted on product update
-  //variantNodes: { id: string }[];
-};
-
-export class ShopifyClient {
-  shopDomain: string;
-  accessToken: string;
-
-  constructor(shopDomain: string, accessToken: string) {
-    this.shopDomain = `https://${shopDomain}/admin/api/${LATEST_API_VERSION}/graphql.json`;
-    this.accessToken = accessToken;
-  }
-
-  async graphql(query: string, variables: unknown) {
-    const resp = await fetch(this.shopDomain, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": this.accessToken,
-      },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
-    });
-
-    if (!resp.ok) {
-      throw new Error(resp.statusText)
-    }
-
-    return resp
-  }
-
-  async getProduct(productId: string): Promise<ShopifyProduct> {
-    const resp = await this.graphql(
-      `query GetProductFeaturedImage($productId: ID!) {
-        product(id: $productId) {
-          id
-          description
-          variants(first:10){
-            nodes{
-              id
-            }
-          }
-          featuredImage {
-            url
-          }
-        }
-      }`,
-      { productId },
-    );
-
-    const {
-      data: { product },
-    } = await resp.json();
-
-    return product;
-  }
-
-  async updateProduct(input: UpdateProductInput) {
-    await this.graphql(
-      `mutation UpdateProduct($input:ProductInput!){
-          productUpdate(input:$input) {
-            userErrors{
-              field
-            }
-            product{
-              id
-              title
-              description
-            }
-          }
-        }`,
-      { input },
-    );
-  }
-}
 
 export function webhookMessageHandler(message: Message) {
   switch (message?.attributes["X-Shopify-Topic"]) {
@@ -151,10 +61,10 @@ export async function productCreateHandler(message: Message) {
     );
   }
 
-  const shopifyClient = new ShopifyClient(shop, session.accessToken);
+  const gql = shopifyClient(shop, session.accessToken);
   const getVisionatiImageDescriptions = await visionatiClient(shop)
 
-  const product = await shopifyClient.getProduct(data?.admin_graphql_api_id);
+  const product = await getProduct(gql, data?.admin_graphql_api_id);
 
   if (!product?.featuredImage?.url) {
     return;
@@ -170,11 +80,10 @@ export async function productCreateHandler(message: Message) {
     return;
   }
 
-  await shopifyClient.updateProduct({
-    id: product.id,
-    descriptionHtml: descriptions[product.featuredImage.url],
-    //variantNodes: product.variants.nodes,
-  });
+  await updateProduct(gql,
+    product.id,
+    descriptions[product.featuredImage.url],
+  );
 
   // === Everything is complete now log in the DB what happened. ===
 

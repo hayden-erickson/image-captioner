@@ -164,7 +164,7 @@ export default function ShopAutoImageDescriptions() {
     data,
     isLoading,
     submit,
-  } = useRoutedFetcher<OptionalShopId | null>("/settings/shop_auto_image_descriptions");
+  } = useRoutedFetcher<OptionalShopId | null>("/app/settings/shop_auto_image_descriptions");
 
   const checked = isLoading ? false : Boolean(data?.shopId)
 
@@ -183,7 +183,7 @@ export default function ShopAutoImageDescriptions() {
         checked={checked}
         onChange={toggleShopAutoImageDescriptions} />
       <Text as='p' tone='subdued'>
-        Use Visionati to automatically generate image descriptions when new products are created.
+        Automatically generate image descriptions when new products are created.
       </Text>
     </BlockStack>
   )
