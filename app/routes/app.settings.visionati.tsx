@@ -44,8 +44,6 @@ export const loader = async ({ request }: LoaderFunctionArgs):
       },
     })
 
-  console.log(settings?.custom_prompt)
-
   return json(settings ? {
     shopId: settings.shop_id,
     role: (settings.role || '') as VisionatiRole,
@@ -65,8 +63,6 @@ export const action = async ({ request, }: ActionFunctionArgs):
     role,
     customPrompt,
   } = await request.json()
-
-  console.log(customPrompt)
 
   await db.shopVisionatiSettings.upsert(
     {
@@ -203,7 +199,6 @@ export default function Settings() {
   //}
 
   const saveSettings = (s: VisionatiSettings) => {
-    console.log(s)
     submit(s, "POST");
     shopify.toast.show("Settings Saved");
   }

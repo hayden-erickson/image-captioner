@@ -8,6 +8,7 @@ import {
   shopifyClient,
   updateProduct,
   GQLFn,
+  logger,
 } from "../shopify.server"
 
 import {
@@ -32,6 +33,8 @@ import {
   filterProductsHaveAIDescriptions
 } from "../bulk_product_operations.server"
 
+const fLog = logger.child({ file: './app/socket/products.server.ts' })
+
 async function gqlClient(shop: string): Promise<GQLFn> {
   const session = await db.session.findFirst({ where: { shop } });
 
@@ -47,7 +50,9 @@ async function gqlClient(shop: string): Promise<GQLFn> {
 async function handleUpdateProducts(socket: Socket, shopify: GQLFn, args: UpdateProductsArgs) {
   const productCatalogBulkUpdateRequestId = crypto.randomUUID()
   if (!args.shopId) {
-    console.error('No shop ID provided to update product descriptions')
+    fLog.error({
+      function: 'handleUpdateProducts',
+    }, 'No shop ID provided to update product descriptions')
     return
   }
 

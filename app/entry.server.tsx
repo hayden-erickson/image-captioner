@@ -7,6 +7,10 @@ import {
 } from "@remix-run/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import { logger } from './shopify.server'
+
+const fLog = logger.child({ file: './app/entry.server.tsx' })
+
 
 const ABORT_DELAY = 5000;
 
@@ -48,7 +52,7 @@ export default async function handleRequest(
         },
         onError(error) {
           responseStatusCode = 500;
-          console.error(error);
+          fLog.error(error);
         },
       }
     );

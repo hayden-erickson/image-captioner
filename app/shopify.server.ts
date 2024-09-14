@@ -20,11 +20,20 @@ import {
   getProductGQL,
   getProductsPageGQL,
   updateProductGQL,
+  planDetailsMap,
   FREE_PLAN,
   BASIC_PLAN,
   STANDARD_PLAN,
   PREMIUM_PLAN,
 } from './shopify.types'
+import pino from 'pino';
+
+export const logger = pino({
+  level: process.env.PINO_LOG_LEVEL || 'debug',
+  timestamp: pino.stdTimeFunctions.isoTime,
+});
+
+const fLog = logger.child({ file: './app/shopify.server.ts' })
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -138,7 +147,10 @@ export function getProductsClient(gql: GQLFn): GetProductsFn {
     const body = await response.json()
 
     if (body?.errors?.length > 0) {
-      console.log(body)
+      fLog.error({
+        body,
+        function: 'getProductsClient',
+      }, 'getting products page from shopify admin API')
       const allMsgs = body.errors.map((e: any) => e.message).join('\n')
       throw new Error(allMsgs)
     }
