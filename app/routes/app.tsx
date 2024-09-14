@@ -40,9 +40,9 @@ export default function App() {
   }, []);
 
   return (
-    <SocketProvider socket={socket} shopId={shopId}>
-      <BillingProvider billing={data}>
-        <AppProvider isEmbeddedApp apiKey={apiKey}>
+    <AppProvider isEmbeddedApp apiKey={apiKey}>
+      <SocketProvider socket={socket} shopId={shopId}>
+        <BillingProvider billing={data}>
           <NavMenu>
             <Link to="/app" rel="home">
               Home
@@ -59,9 +59,9 @@ export default function App() {
 
           <Outlet />
 
-        </AppProvider>
-      </BillingProvider>
-    </SocketProvider>
+        </BillingProvider>
+      </SocketProvider>
+    </AppProvider>
   );
 }
 

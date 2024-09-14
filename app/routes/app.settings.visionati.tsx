@@ -29,6 +29,8 @@ import {
   DEFAULT_BACKEND,
   VisionatiSettings
 } from "../visionati.types";
+import { SubscriptionGate } from "~/billing/context";
+import { PREMIUM_PLAN, STANDARD_PLAN } from "~/shopify.types";
 
 
 export const loader = async ({ request }: LoaderFunctionArgs):
@@ -107,13 +109,15 @@ function SelectBackend({
     .map((v: VisionatiDescriptionBackend) => ({ label: v, value: v }))
 
   return (
-    <Select
-      label="AI Model"
-      options={options}
-      disabled={disabled}
-      onChange={onBackendChange}
-      value={backend}
-    />
+    <SubscriptionGate showFor={[STANDARD_PLAN, PREMIUM_PLAN]}>
+      <Select
+        label="AI Model"
+        options={options}
+        disabled={disabled}
+        onChange={onBackendChange}
+        value={backend}
+      />
+    </SubscriptionGate>
   );
 }
 
@@ -133,13 +137,15 @@ function SelectRole({
   )
 
   return (
-    <Select
-      label="Role"
-      options={options}
-      disabled={disabled}
-      onChange={onRoleChange}
-      value={role}
-    />
+    <SubscriptionGate showFor={[STANDARD_PLAN, PREMIUM_PLAN]}>
+      <Select
+        label="Role"
+        options={options}
+        disabled={disabled}
+        onChange={onRoleChange}
+        value={role}
+      />
+    </SubscriptionGate>
   );
 
 }
@@ -161,15 +167,17 @@ function CustomPrompt({
   disabled,
 }: CustomPromptProps) {
   return (
-    <TextField label="Custom Prompt"
-      clearButton
-      onClearButtonClick={() => onPromptChange('')}
-      multiline
-      disabled={disabled}
-      value={prompt}
-      onChange={onPromptChange}
-      helpText={customPromptHelpText}
-      autoComplete="off" />
+    <SubscriptionGate showFor={[PREMIUM_PLAN]}>
+      <TextField label="Custom Prompt"
+        clearButton
+        onClearButtonClick={() => onPromptChange('')}
+        multiline
+        disabled={disabled}
+        value={prompt}
+        onChange={onPromptChange}
+        helpText={customPromptHelpText}
+        autoComplete="off" />
+    </SubscriptionGate>
   )
 }
 

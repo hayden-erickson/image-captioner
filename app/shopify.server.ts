@@ -4,7 +4,6 @@ import {
   ApiVersion,
   AppDistribution,
   shopifyApp,
-  BillingInterval,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { restResources } from "@shopify/shopify-api/rest/admin/2024-07";
@@ -40,30 +39,30 @@ const shopify = shopifyApp({
   billing: {
     [FREE_PLAN]: {
       lineItems: [{
-        amount: 0,
+        amount: planDetailsMap[FREE_PLAN].price,
         currencyCode: 'USD',
-        interval: BillingInterval.Every30Days,
+        interval: planDetailsMap[FREE_PLAN].interval,
       }],
     },
     [BASIC_PLAN]: {
       lineItems: [{
-        amount: 10,
+        amount: planDetailsMap[BASIC_PLAN].price,
         currencyCode: 'USD',
-        interval: BillingInterval.Every30Days,
+        interval: planDetailsMap[BASIC_PLAN].interval,
       }],
     },
     [STANDARD_PLAN]: {
       lineItems: [{
-        amount: 15,
+        amount: planDetailsMap[STANDARD_PLAN].price,
         currencyCode: 'USD',
-        interval: BillingInterval.Every30Days,
+        interval: planDetailsMap[STANDARD_PLAN].interval,
       }],
     },
     [PREMIUM_PLAN]: {
       lineItems: [{
-        amount: 25,
+        amount: planDetailsMap[PREMIUM_PLAN].price,
         currencyCode: 'USD',
-        interval: BillingInterval.Every30Days,
+        interval: planDetailsMap[PREMIUM_PLAN].interval,
       }],
     },
   },
@@ -74,6 +73,7 @@ const shopify = shopifyApp({
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
 });
+
 
 export default shopify;
 export const apiVersion = ApiVersion.July24;

@@ -1,4 +1,4 @@
-import { BillingCheckResponseObject } from '@shopify/shopify-api'
+import { BillingCheckResponseObject, BillingInterval } from '@shopify/shopify-api'
 
 export type ForEachProductPageArgs = {
   getShopifyProducts: GetProductsFn;
@@ -81,68 +81,86 @@ export type BillingInfo = {
 } & BillingCheckResponseObject
 
 export const DEFAULT_DESCRIPTION_COUNT = 25
-export const FREE_PLAN = 'free_plan'
-export const BASIC_PLAN = 'basic_plan'
-export const STANDARD_PLAN = 'standard_plan'
-export const PREMIUM_PLAN = 'premium_plan'
+export type PlanKey = 'free_plan'
+  | 'basic_plan'
+  | 'standard_plan'
+  | 'premium_plan'
 
-export const planDescriptionCountMap: { [key: string]: number } = {
-  [FREE_PLAN]: DEFAULT_DESCRIPTION_COUNT,
-  [BASIC_PLAN]: 100,
-  [STANDARD_PLAN]: 200,
-  [PREMIUM_PLAN]: 500,
-}
+export const FREE_PLAN: PlanKey = 'free_plan'
+export const BASIC_PLAN: PlanKey = 'basic_plan'
+export const STANDARD_PLAN: PlanKey = 'standard_plan'
+export const PREMIUM_PLAN: PlanKey = 'premium_plan'
+export const DEFAULT_PLAN: PlanKey = FREE_PLAN
 
-
-type UserError = {
-  field: string;
-  message: string;
-}
-
-type SubscriptionCancelResponse = {
-  appSubscriptionCancel: {
-    userErrors: UserError[],
-    appSubscription: {
-      id: string;
-      status: string;
-    }
-  }
-}
-
-type SubscriptionCreateResponse = {
-  appSubscriptionCreate: {
-    userErrors: UserError[],
-    appSubscription: {
-      id: string;
-    },
-    confirmationUrl: string
-  }
-}
-
-type PricingInterval = "EVERY_30_DAYS" | "ANNUAL"
-
-type Price = {
-  amount: number,
-  currencyCode: string,
-}
-
-type RecurringPricingDetails = {
-  price: Price;
-  interval: PricingInterval;
-}
-
-type SubscriptionPlan = {
-  appRecurringPricingDetails: RecurringPricingDetails;
-}
-
-type SubscriptionLineItemInput = {
-  plan: SubscriptionPlan;
-}
-
-type SubscriptionPlanCreateInput = {
+export type SubscriptionPlanDetails = {
+  key: PlanKey;
   name: string;
-  returnUrl: string;
-  lineItems: SubscriptionLineItemInput[],
+  descriptionCount: number;
+  features: string[];
+  price: number;
+  interval: BillingInterval.Every30Days | BillingInterval.Annual;
+}
+
+const freePlanFeatures = [
+  "25 AI product descriptions per month",
+  "Bulk descriptions",
+]
+
+const basicPlanFeatures = [
+  "100 AI product descriptions per month",
+  "Automatic & bulk descriptions",
+]
+
+const standardPlanFeatures = [
+  "200 AI product descriptions per month",
+  "Automatic & bulk descriptions",
+  "SEO content",
+  "Multiple AI roles",
+  "Multiple AI models",
+]
+
+const premiumPlanFeatures = [
+  "500 AI product descriptions per month",
+  "Automatic & bulk descriptions",
+  "SEO content",
+  "Multiple AI roles",
+  "Multiple AI models",
+  "Custom AI prompts",
+]
+
+export const planDetailsMap: { [key: string]: SubscriptionPlanDetails } = {
+  [FREE_PLAN]: {
+    key: FREE_PLAN,
+    name: "Free",
+    descriptionCount: DEFAULT_DESCRIPTION_COUNT,
+    features: freePlanFeatures,
+    price: 0,
+    interval: BillingInterval.Every30Days,
+  },
+  [BASIC_PLAN]: {
+    key: BASIC_PLAN,
+    name: "Basic",
+    descriptionCount: 100,
+    features: basicPlanFeatures,
+    price: 10,
+    interval: BillingInterval.Every30Days,
+  },
+  [STANDARD_PLAN]: {
+    key: STANDARD_PLAN,
+    name: "Standard",
+    descriptionCount: 200,
+    features: standardPlanFeatures,
+    price: 15,
+    interval: BillingInterval.Every30Days,
+  },
+  [PREMIUM_PLAN]: {
+    key: PREMIUM_PLAN,
+    name: "Premium",
+    descriptionCount: 500,
+    features: premiumPlanFeatures,
+    price: 25,
+    interval: BillingInterval.Every30Days,
+  },
 }
 
 export const updateProductGQL = `#graphql
@@ -191,106 +209,6 @@ export const getProductGQL = `#graphql
         }
       }
     }`
-
-const createSubscriptionGQL = `mutation AppSubscriptionCreate($name: String!, $lineItems: [AppSubscriptionLineItemInput!]!, $returnUrl: URL!) {
-  appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems) {
-    userErrors {
-      field
-      message
-    }
-    appSubscription {
-      id
-    }
-    confirmationUrl
-  }
-}`
-
-const cancelSubscriptionGQL = `mutation AppSubscriptionCancel($id: ID!) {
-  appSubscriptionCancel(id: $id) {
-    userErrors {
-      field
-      message
-    }
-    appSubscription {
-      id
-      status
-    }
-  }
-}`
-
-const oneTimePurchaseGQL = `mutation AppPurchaseOneTimeCreate($name: String!, $price: MoneyInput!, $returnUrl: URL!) {
-  appPurchaseOneTimeCreate(name: $name, returnUrl: $returnUrl, price: $price) {
-    userErrors {
-      field
-      message
-    }
-    appPurchaseOneTime {
-      createdAt
-      id
-    }
-    confirmationUrl
-  }
-}`
-
-const billingPreferencesGQL = `query ShopBillingPreferences(){
-  shopBillingPreferences() {
-    currency
-  }
-}`
-
-const basicSubscriptionCreateInput: SubscriptionPlanCreateInput = {
-  name: BASIC_PLAN,
-  returnUrl: "http://image-captioner.shopifyapps.com/",
-  lineItems: [
-    {
-      plan: {
-        appRecurringPricingDetails: {
-          price: {
-            amount: 10,
-            currencyCode: "USD"
-          },
-          interval: "EVERY_30_DAYS"
-        }
-      }
-    }
-  ]
-}
-
-const standardSubscriptionCreateInput: SubscriptionPlanCreateInput = {
-  name: STANDARD_PLAN,
-  returnUrl: "http://image-captioner.shopifyapps.com/",
-  lineItems: [
-    {
-      plan: {
-        appRecurringPricingDetails: {
-          price: {
-            amount: 15,
-            currencyCode: "USD"
-          },
-          interval: "EVERY_30_DAYS"
-        }
-      }
-    }
-  ]
-}
-
-const premiumSubscriptionCreateInput: SubscriptionPlanCreateInput = {
-  name: PREMIUM_PLAN,
-  returnUrl: "http://image-captioner.shopifyapps.com/",
-  lineItems: [
-    {
-      plan: {
-        appRecurringPricingDetails: {
-          price: {
-            amount: 25,
-            currencyCode: "USD"
-          },
-          interval: "EVERY_30_DAYS"
-        }
-      }
-    }
-  ]
-}
 
 export const trimStr = (str: string): string =>
   str

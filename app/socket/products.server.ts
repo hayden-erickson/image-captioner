@@ -14,6 +14,9 @@ import {
   Product,
   ProductConnectionWithAIAnnotation,
   ProductWithAIAnnotation,
+  strippedEqual,
+  GQLFn,
+  GetProductsFn,
 } from '../shopify.types'
 
 import {
@@ -41,7 +44,7 @@ async function gqlClient(shop: string): Promise<GQLFn> {
   return shopifyClient(shop, session.accessToken);
 }
 
-async function handleUpdateProducts(shopify: GQLFn, args: UpdateProductsArgs) {
+async function handleUpdateProducts(socket: Socket, shopify: GQLFn, args: UpdateProductsArgs) {
   const productCatalogBulkUpdateRequestId = crypto.randomUUID()
   if (!args.shopId) {
     console.error('No shop ID provided to update product descriptions')
@@ -67,11 +70,10 @@ async function handleUpdateProducts(shopify: GQLFn, args: UpdateProductsArgs) {
     args.shopId,
     bulkOperation,
   )
+
+  socket.emit("descriptionUpdateComplete")
 }
 
-
-const strippedEqual = (a: string, b: string): boolean =>
-  a.replace(/\s/g, '') === b.replace(/\s/g, '')
 
 async function loaderWithFilter(
   socket: Socket,
@@ -134,26 +136,19 @@ async function handleGetProducts(socket: Socket, shopify: GQLFn, { filter, q, af
     return loaderWithFilter(socket, filter, getProducts)
   }
 
-  let products = {} as ProductConnectionWithAIAnnotation;
-
-  try {
-    products = await getProducts({
-      query: q,
-      after,
-      before,
-      first: !before ? 10 : undefined,
-      last: before ? 10 : undefined,
-    })
-  } catch (e: any) {
-    socket.emit("error", e)
-    return
-  }
+  let products: ProductConnectionWithAIAnnotation = await getProducts({
+    query: q,
+    after,
+    before,
+    first: !before ? 10 : undefined,
+    last: before ? 10 : undefined,
+  })
 
   if (!products) {
     return
   }
 
-  await Promise.all(products.nodes.map(async (p: Product, i: number) => {
+  await Promise.all(products.nodes.map(async (p: ProductWithAIAnnotation, i: number) => {
     const aiDescs = await getAIProductDescriptions(p.id, 1)
     products.nodes[i].aiDescription = aiDescs?.length > 0 ? aiDescs[0].new_description : ''
   }))
@@ -161,18 +156,30 @@ async function handleGetProducts(socket: Socket, shopify: GQLFn, { filter, q, af
   socket.emit("products", products)
 }
 
+async function socketErrorHandler(socket: Socket, callback: () => Promise<any>) {
+  socket.emit("productsLoading", true)
+  try {
+    await callback()
+  } catch (error: any) {
+    fLog.error({
+      error,
+      function: 'socketErrorHandler',
+    }, 'handling socket request for products')
+    socket.emit("error", error)
+  }
+  socket.emit("productsLoading", false)
+}
+
+
 export function productsHandler(socket: Socket) {
   socket.on("updateProducts", async (args: UpdateProductsArgs & { shopId: string }) => {
-    socket.emit("productsLoading", true)
-    await handleUpdateProducts(await gqlClient(args.shopId), args)
-    socket.emit("productsLoading", false)
-    socket.emit("descriptionUpdateComplete")
+    const client = await gqlClient(args.shopId)
+    socketErrorHandler(socket, () => handleUpdateProducts(socket, client, args))
   })
 
   socket.on("getProducts", async (args: GetProductsArgs & { shopId: string }) => {
-    socket.emit("productsLoading", true)
-    await handleGetProducts(socket, await gqlClient(args.shopId), args)
-    socket.emit("productsLoading", false)
+    const client = await gqlClient(args.shopId)
+    socketErrorHandler(socket, () => handleGetProducts(socket, client, args))
   })
 }
 
