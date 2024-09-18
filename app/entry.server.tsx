@@ -14,6 +14,12 @@ const fLog = logger.child({ file: './app/entry.server.tsx' })
 
 const ABORT_DELAY = 5000;
 
+export function handleError(error: Error, request: Request) {
+  fLog.error(error, 'error handled by remix entry server');
+
+  // Optionally report errors to an external service
+}
+
 export default async function handleRequest(
   request: Request,
   responseStatusCode: number,

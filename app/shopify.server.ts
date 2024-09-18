@@ -1,4 +1,4 @@
-import { LATEST_API_VERSION } from "@shopify/shopify-app-remix/server";
+import { LATEST_API_VERSION, LogSeverity } from "@shopify/shopify-app-remix/server";
 import "@shopify/shopify-app-remix/adapters/node";
 import {
   ApiVersion,
@@ -36,6 +36,11 @@ export const logger = pino({
 const fLog = logger.child({ file: './app/shopify.server.ts' })
 
 const shopify = shopifyApp({
+  logger: {
+    level: LogSeverity.Info,
+    httpRequests: true,
+    timestamps: true,
+  },
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
   apiVersion: ApiVersion.July24,

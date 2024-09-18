@@ -1,13 +1,11 @@
 import type { Socket } from 'socket.io'
 import db from "../db.server";
 import {
-  GetProductsFn,
   getAIProductDescriptions,
   getProductsClient,
   filterAllProducts,
   shopifyClient,
   updateProduct,
-  GQLFn,
   logger,
 } from "../shopify.server"
 
