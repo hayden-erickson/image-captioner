@@ -9,7 +9,6 @@ services:
       - "./db:/var/lib/mysql"
     environment:
       - "TZ"
-      - "MARIADB_RANDOM_ROOT_PASSWORD=yes"
       - "MYSQL_DATABASE=shopify"
       - "MYSQL_USER=shopify"
       - "MYSQL_PASSWORD=shopify"
