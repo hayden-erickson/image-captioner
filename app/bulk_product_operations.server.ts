@@ -4,6 +4,7 @@ import { URLDescriptionIdx, GetImageDescriptionsFn } from "./visionati.types"
 import {
   forEachProductPage,
   getProductsClient,
+  logger,
 } from "./shopify.server"
 
 import {
@@ -14,7 +15,8 @@ import {
   GQLFn,
   Product,
 } from "./shopify.types"
-import { Count } from "@prisma/client/runtime/react-native.js";
+
+const fLog = logger.child({ file: './app/bulk_product_operations.server.ts' })
 
 type CreateProductDescriptionUpdateLogArgs = {
   nodes: Product[];
@@ -177,8 +179,10 @@ export async function bulkProductUpdate(prid: string, shopId: string, bulkUpdate
         data: { end_time: new Date(), error: true },
       })
 
-      console.error(`ERROR product bulk update request ${prid}`)
-      console.error(err)
+      fLog.error({
+        error: err,
+        productBulkUpdateRequestId: prid,
+      }, `bulk product update request failed`)
     })
 }
 

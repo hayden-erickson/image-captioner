@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "a556031e8a54b39c2ccb91895fd1045b"
-name = "image-captioner"
-handle = "image-captioner"
+name = "Visionati"
+handle = "visionati"
 application_url = "https://integration-wrong-overnight-undertaken.trycloudflare.com"
 embedded = true
 

@@ -7,6 +7,9 @@ import { Server } from "socket.io";
 import socketHandler from './app/socket/index'
 import { PubSub } from '@google-cloud/pubsub';
 import { webhookMessageHandler } from './app/pubsub.server'
+import { logger } from './app/shopify.server'
+
+const fLog = logger.child({ file: './server.ts' })
 
 const viteDevServer =
   process.env.NODE_ENV === "production"
@@ -64,9 +67,15 @@ const port = process.env.PORT || 3000;
 
 // instead of running listen on the Express app, do it on the HTTP server
 httpServer.listen(port, '0.0.0.0', () => {
-  console.log(`Express server listening at http://localhost:${port}`);
+  fLog.info({
+    host: 'localhost',
+    port,
+  }, `Express server listening`);
 
-  console.log(`creating subscription to ${process.env.GOOGLE_PUBSUB_SUBSCRIPTION}`)
+  fLog.info({
+    googlePubsubSubscription: process.env.GOOGLE_PUBSUB_SUBSCRIPTION
+  }, `Creating google pubsub subscription`)
+
   const pubSubClient = new PubSub();
   const subscription = pubSubClient.subscription(process.env.GOOGLE_PUBSUB_SUBSCRIPTION || "");
   subscription.on('message', webhookMessageHandler);

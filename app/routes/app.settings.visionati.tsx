@@ -29,6 +29,8 @@ import {
   DEFAULT_BACKEND,
   VisionatiSettings
 } from "../visionati.types";
+import { SubscriptionGate } from "~/billing/context";
+import { PREMIUM_PLAN, STANDARD_PLAN } from "~/shopify.types";
 
 
 export const loader = async ({ request }: LoaderFunctionArgs):
@@ -41,8 +43,6 @@ export const loader = async ({ request }: LoaderFunctionArgs):
         shop_id: session.shop,
       },
     })
-
-  console.log(settings?.custom_prompt)
 
   return json(settings ? {
     shopId: settings.shop_id,
@@ -63,8 +63,6 @@ export const action = async ({ request, }: ActionFunctionArgs):
     role,
     customPrompt,
   } = await request.json()
-
-  console.log(customPrompt)
 
   await db.shopVisionatiSettings.upsert(
     {
@@ -107,13 +105,15 @@ function SelectBackend({
     .map((v: VisionatiDescriptionBackend) => ({ label: v, value: v }))
 
   return (
-    <Select
-      label="AI Model"
-      options={options}
-      disabled={disabled}
-      onChange={onBackendChange}
-      value={backend}
-    />
+    <SubscriptionGate showFor={[STANDARD_PLAN, PREMIUM_PLAN]}>
+      <Select
+        label="AI Model"
+        options={options}
+        disabled={disabled}
+        onChange={onBackendChange}
+        value={backend}
+      />
+    </SubscriptionGate>
   );
 }
 
@@ -133,13 +133,15 @@ function SelectRole({
   )
 
   return (
-    <Select
-      label="Role"
-      options={options}
-      disabled={disabled}
-      onChange={onRoleChange}
-      value={role}
-    />
+    <SubscriptionGate showFor={[STANDARD_PLAN, PREMIUM_PLAN]}>
+      <Select
+        label="Role"
+        options={options}
+        disabled={disabled}
+        onChange={onRoleChange}
+        value={role}
+      />
+    </SubscriptionGate>
   );
 
 }
@@ -161,15 +163,17 @@ function CustomPrompt({
   disabled,
 }: CustomPromptProps) {
   return (
-    <TextField label="Custom Prompt"
-      clearButton
-      onClearButtonClick={() => onPromptChange('')}
-      multiline
-      disabled={disabled}
-      value={prompt}
-      onChange={onPromptChange}
-      helpText={customPromptHelpText}
-      autoComplete="off" />
+    <SubscriptionGate showFor={[PREMIUM_PLAN]}>
+      <TextField label="Custom Prompt"
+        clearButton
+        onClearButtonClick={() => onPromptChange('')}
+        multiline
+        disabled={disabled}
+        value={prompt}
+        onChange={onPromptChange}
+        helpText={customPromptHelpText}
+        autoComplete="off" />
+    </SubscriptionGate>
   )
 }
 
@@ -195,7 +199,6 @@ export default function Settings() {
   //}
 
   const saveSettings = (s: VisionatiSettings) => {
-    console.log(s)
     submit(s, "POST");
     shopify.toast.show("Settings Saved");
   }

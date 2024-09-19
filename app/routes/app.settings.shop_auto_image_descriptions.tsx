@@ -7,13 +7,14 @@ import { json } from "@remix-run/node";
 import db from "../db.server";
 
 import { authenticate } from "../shopify.server";
-import { OptionalShopId } from "../shopify.types"
+import { BASIC_PLAN, FREE_PLAN, OptionalShopId, PREMIUM_PLAN, STANDARD_PLAN } from "../shopify.types"
 import {
   BlockStack,
   Checkbox,
   Text,
 } from "@shopify/polaris";
 import { useRoutedFetcher } from "~/fetcher";
+import { SubscriptionGate } from "~/billing/context";
 
 
 export async function loader({ request }: LoaderFunctionArgs):
@@ -177,14 +178,16 @@ export default function ShopAutoImageDescriptions() {
   }
 
   return (
-    <BlockStack gap='200'>
-      <Checkbox label="Generate Automatic Image Descriptions"
-        disabled={isLoading}
-        checked={checked}
-        onChange={toggleShopAutoImageDescriptions} />
-      <Text as='p' tone='subdued'>
-        Automatically generate image descriptions when new products are created.
-      </Text>
-    </BlockStack>
+    <SubscriptionGate showFor={[BASIC_PLAN, STANDARD_PLAN, PREMIUM_PLAN]}>
+      <BlockStack gap='200'>
+        <Checkbox label="Generate Automatic Image Descriptions"
+          disabled={isLoading}
+          checked={checked}
+          onChange={toggleShopAutoImageDescriptions} />
+        <Text as='p' tone='subdued'>
+          Automatically generate image descriptions when new products are created.
+        </Text>
+      </BlockStack>
+    </SubscriptionGate>
   )
 }

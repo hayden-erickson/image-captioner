@@ -5,8 +5,10 @@ import {
   shopifyClient,
   getProduct,
   updateProduct,
+  logger,
 } from "./shopify.server";
 
+const fLog = logger.child({ file: './app/pubsub.server.ts' })
 
 export function webhookMessageHandler(message: Message) {
   switch (message?.attributes["X-Shopify-Topic"]) {
@@ -14,12 +16,12 @@ export function webhookMessageHandler(message: Message) {
       productCreateHandler(message)
         .then(() => message.ack())
         .catch((e) => {
-          console.error(e);
+          fLog.error(e);
           message.nack();
         });
       break;
     default:
-      console.log(
+      fLog.info(
         `Webhook topic ${message.attributes["X-Shopify-Topic"]} not handled.`,
       );
   }

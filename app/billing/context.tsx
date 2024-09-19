@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import { createContext, useContext } from "react";
-import { BillingInfo } from '../shopify.types'
+import { AppSubscription } from '@shopify/shopify-api'
+import { BillingInfo, PlanKey } from '../shopify.types'
 
 type BillingProps = {
   billing: BillingInfo;
@@ -19,4 +20,34 @@ export function BillingProvider({ billing, children }: BillingProps) {
       {children}
     </billingCtx.Provider>
   )
+}
+
+type SubscriptionGateProps = {
+  children: ReactNode;
+  hideIfNoActivePayment?: boolean;
+  showFor?: PlanKey[];
+}
+
+export function SubscriptionGate({
+  children,
+  hideIfNoActivePayment,
+  showFor,
+}: SubscriptionGateProps) {
+  const billingCtx = useBilling()
+
+  if (hideIfNoActivePayment && !billingCtx?.hasActivePayment) {
+    return null
+  }
+
+  if (!billingCtx?.appSubscriptions || billingCtx?.appSubscriptions?.length <= 0) {
+    return null
+  }
+
+  const activeSubs = billingCtx?.appSubscriptions.map((s: AppSubscription) => s.id)
+
+  if (showFor && !showFor?.some((k: PlanKey) => activeSubs.includes(k))) {
+    return null
+  }
+
+  return children
 }

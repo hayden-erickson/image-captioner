@@ -1,10 +1,9 @@
-import { LATEST_API_VERSION } from "@shopify/shopify-app-remix/server";
+import { LATEST_API_VERSION, LogSeverity } from "@shopify/shopify-app-remix/server";
 import "@shopify/shopify-app-remix/adapters/node";
 import {
   ApiVersion,
   AppDistribution,
   shopifyApp,
-  BillingInterval,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { restResources } from "@shopify/shopify-api/rest/admin/2024-07";
@@ -21,13 +20,27 @@ import {
   getProductGQL,
   getProductsPageGQL,
   updateProductGQL,
+  planDetailsMap,
   FREE_PLAN,
   BASIC_PLAN,
   STANDARD_PLAN,
   PREMIUM_PLAN,
 } from './shopify.types'
+import pino from 'pino';
+
+export const logger = pino({
+  level: process.env.PINO_LOG_LEVEL || 'debug',
+  timestamp: pino.stdTimeFunctions.isoTime,
+});
+
+const fLog = logger.child({ file: './app/shopify.server.ts' })
 
 const shopify = shopifyApp({
+  logger: {
+    level: LogSeverity.Info,
+    httpRequests: true,
+    timestamps: true,
+  },
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
   apiVersion: ApiVersion.July24,
@@ -40,30 +53,30 @@ const shopify = shopifyApp({
   billing: {
     [FREE_PLAN]: {
       lineItems: [{
-        amount: 0,
+        amount: planDetailsMap[FREE_PLAN].price,
         currencyCode: 'USD',
-        interval: BillingInterval.Every30Days,
+        interval: planDetailsMap[FREE_PLAN].interval,
       }],
     },
     [BASIC_PLAN]: {
       lineItems: [{
-        amount: 10,
+        amount: planDetailsMap[BASIC_PLAN].price,
         currencyCode: 'USD',
-        interval: BillingInterval.Every30Days,
+        interval: planDetailsMap[BASIC_PLAN].interval,
       }],
     },
     [STANDARD_PLAN]: {
       lineItems: [{
-        amount: 15,
+        amount: planDetailsMap[STANDARD_PLAN].price,
         currencyCode: 'USD',
-        interval: BillingInterval.Every30Days,
+        interval: planDetailsMap[STANDARD_PLAN].interval,
       }],
     },
     [PREMIUM_PLAN]: {
       lineItems: [{
-        amount: 25,
+        amount: planDetailsMap[PREMIUM_PLAN].price,
         currencyCode: 'USD',
-        interval: BillingInterval.Every30Days,
+        interval: planDetailsMap[PREMIUM_PLAN].interval,
       }],
     },
   },
@@ -74,6 +87,7 @@ const shopify = shopifyApp({
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
 });
+
 
 export default shopify;
 export const apiVersion = ApiVersion.July24;
@@ -138,7 +152,10 @@ export function getProductsClient(gql: GQLFn): GetProductsFn {
     const body = await response.json()
 
     if (body?.errors?.length > 0) {
-      console.log(body)
+      fLog.error({
+        body,
+        function: 'getProductsClient',
+      }, 'getting products page from shopify admin API')
       const allMsgs = body.errors.map((e: any) => e.message).join('\n')
       throw new Error(allMsgs)
     }

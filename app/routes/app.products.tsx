@@ -2,28 +2,32 @@ import { useEffect, useState } from 'react';
 
 import {
   IndexTable,
+  Banner,
   useIndexResourceState,
   useSetIndexFiltersMode,
   Text,
-  Link,
   Thumbnail,
   TabProps,
   Badge,
   IndexFilters,
+  BlockStack,
 } from '@shopify/polaris';
 
 import {
   useSearchParams,
+  Link,
 } from '@remix-run/react'
 
 import ProductReview from './app.products.review'
 import { useProductsSubscription } from "~/socket/products";
 
 import {
+  DEFAULT_DESCRIPTION_COUNT,
   Product,
   ProductWithAIAnnotation,
   strippedEqual
 } from "../shopify.types"
+import { useBilling } from '~/billing/context';
 
 export type TabFilterKey =
   'all_products' |
@@ -114,8 +118,14 @@ function ProductsTable() {
   const [queryValue, setQueryValue] = useState('')
   const [debounceTimeoutID, setDebounceTimeoutID] = useState(0)
   const [selectedTab, setSelectedTab] = useState(0)
+  const [billingBannerOpen, setBillingBannerOpen] = useState(false)
+  const billingCtx = useBilling()
   const { mode, setMode } = useSetIndexFiltersMode();
   const [urlParams, setURLParameters] = useSearchParams()
+
+  const monthlyQuota = billingCtx?.descriptions?.monthlyQuota || DEFAULT_DESCRIPTION_COUNT
+  const totalDescriptionsUsed = billingCtx?.descriptions?.totalUsed || 0
+  const remainingDescriptionsCount = monthlyQuota - totalDescriptionsUsed
 
   // Debounce the product search.
   useEffect(() => {
@@ -176,16 +186,17 @@ function ProductsTable() {
     wipeTable()
   }
 
-
   let promotedBulkActions = [
     {
       content: 'Generate AI Descriptions',
       onAction: () => {
-        submit({
-          products: selectedProducts,
-          action: 'generate',
-          ...(allProductsSelected ? { allProductsSelected } : null)
-        })
+        selectedProducts.length > remainingDescriptionsCount ?
+          setBillingBannerOpen(true)
+          : submit({
+            products: selectedProducts,
+            action: 'generate',
+            ...(allProductsSelected ? { allProductsSelected } : null)
+          })
       },
     },
   ];
@@ -213,7 +224,15 @@ function ProductsTable() {
   }));
 
   return (
-    <>
+    <BlockStack gap="400">
+      {
+        !billingBannerOpen ? null :
+          <Banner onDismiss={() => setBillingBannerOpen(false)}>
+            <p>
+              You do not have enough descriptions remaining. Upgrade your subscription
+            </p>
+          </Banner>
+      }
       <IndexFilters
         hideFilters
         loading={isLoading}
@@ -278,7 +297,7 @@ function ProductsTable() {
           }
         </IndexTable >
       }
-    </>
+    </BlockStack>
   )
 }
 

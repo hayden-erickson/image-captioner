@@ -7,8 +7,18 @@ import {
 } from "@remix-run/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import { logger } from './shopify.server'
+
+const fLog = logger.child({ file: './app/entry.server.tsx' })
+
 
 const ABORT_DELAY = 5000;
+
+export function handleError(error: Error, request: Request) {
+  fLog.error(error, 'error handled by remix entry server');
+
+  // Optionally report errors to an external service
+}
 
 export default async function handleRequest(
   request: Request,
@@ -48,7 +58,7 @@ export default async function handleRequest(
         },
         onError(error) {
           responseStatusCode = 500;
-          console.error(error);
+          fLog.error(error);
         },
       }
     );
